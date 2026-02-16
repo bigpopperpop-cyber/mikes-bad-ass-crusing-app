@@ -82,6 +82,22 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
     }
   };
 
+  const removeCard = (id: string) => {
+    if (window.confirm('Are you sure you want to remove this gift card? This action cannot be undone.')) {
+      setCards(cards.filter(c => c.id !== id));
+      // Remove from revealed IDs if present
+      const newSet = new Set(revealedCardIds);
+      newSet.delete(id);
+      setRevealedCardIds(newSet);
+    }
+  };
+
+  const removeCashEntry = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this cash entry?')) {
+      setCashEntries(cashEntries.filter(e => e.id !== id));
+    }
+  };
+
   const startEditing = (card: GiftCard) => {
     setEditingCardId(card.id);
     setEditValue(card.currentBalance.toString());
@@ -188,7 +204,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                 cards.map(card => {
                   const revealed = revealedCardIds.has(card.id);
                   return (
-                    <div key={card.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between transition-colors active:bg-slate-50 relative">
+                    <div key={card.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between transition-colors active:bg-slate-50 relative group">
                       <div className="flex items-start gap-5 mb-5 sm:mb-0">
                         <div className="bg-slate-50 p-4 rounded-[1.25rem] text-slate-400 border border-slate-100 shrink-0">
                           <CreditCard className="w-6 h-6" />
@@ -202,6 +218,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                             <button 
                               onClick={() => toggleReveal(card.id)}
                               className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 transition-colors"
+                              title={revealed ? "Hide number" : "Show number"}
                             >
                               {revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>
@@ -209,6 +226,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                               <button 
                                 onClick={() => copyToClipboard(card.cardNumber)}
                                 className="p-1.5 hover:bg-slate-100 rounded-md text-blue-500 transition-colors"
+                                title="Copy number"
                               >
                                 <Copy className="w-3.5 h-3.5" />
                               </button>
@@ -249,9 +267,9 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                               </button>
                             </div>
                           ) : (
-                            <div className="flex items-center justify-end gap-3 cursor-pointer group" onClick={() => startEditing(card)}>
+                            <div className="flex items-center justify-end gap-3 cursor-pointer group/edit" onClick={() => startEditing(card)}>
                               <p className="font-black text-slate-900 text-2xl tabular-nums tracking-tight">${card.currentBalance.toFixed(2)}</p>
-                              <div className="p-2 bg-slate-50 rounded-lg group-active:bg-blue-100 transition-colors">
+                              <div className="p-2 bg-slate-50 rounded-lg group-active/edit:bg-blue-100 transition-colors">
                                 <Edit2 className="w-4 h-4 text-slate-400" />
                               </div>
                             </div>
@@ -259,8 +277,9 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         </div>
 
                         <button 
-                          onClick={() => setCards(cards.filter(c => c.id !== card.id))} 
-                          className="p-3 text-slate-300 hover:text-red-500 active-scale"
+                          onClick={() => removeCard(card.id)} 
+                          className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
+                          aria-label="Remove Card"
                         >
                           <Trash2 className="w-6 h-6" />
                         </button>
@@ -298,7 +317,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                 </div>
               ) : (
                 cashEntries.map(entry => (
-                  <div key={entry.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors active:bg-slate-100">
+                  <div key={entry.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors active:bg-slate-100 group">
                     <div className="flex items-center gap-5">
                       <div className="bg-emerald-50 p-4 rounded-[1.25rem] text-emerald-600 border border-emerald-100">
                         <Banknote className="w-6 h-6" />
@@ -317,8 +336,9 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         <p className="text-2xl font-black text-slate-900 tabular-nums tracking-tight">${entry.amount.toFixed(2)}</p>
                       </div>
                       <button 
-                        onClick={() => setCashEntries(cashEntries.filter(e => e.id !== entry.id))} 
-                        className="p-3 text-slate-300 hover:text-red-500 active-scale"
+                        onClick={() => removeCashEntry(entry.id)} 
+                        className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
+                        aria-label="Remove Cash"
                       >
                         <Trash2 className="w-6 h-6" />
                       </button>
@@ -331,7 +351,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
         </div>
       </div>
 
-      {/* Modern High-Performance Modals */}
+      {/* Modern Modals */}
       {(isAddingCard || isAddingCash) && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-300">
           <div 
