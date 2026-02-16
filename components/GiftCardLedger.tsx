@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { GiftCard, CashEntry } from '../types';
-import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2, History } from 'lucide-react';
 
 interface Props {
   projectedTripCost: number;
@@ -43,17 +43,37 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
   }, [cashEntries]);
 
   const stats = useMemo(() => {
-    // Only sum current balance for cards that ARE NOT completed
-    const giftCardAvailable = cards.reduce((sum, card) => {
+    // 1. Available to Spend: Current balance of non-completed cards + total cash
+    const activeGiftCardCurrentBalance = cards.reduce((sum, card) => {
       return card.dateCompleted ? sum : sum + card.currentBalance;
     }, 0);
-    
     const cashTotal = cashEntries.reduce((sum, entry) => sum + entry.amount, 0);
-    const totalSaved = giftCardAvailable + cashTotal;
-    const remainingGoal = Math.max(0, projectedTripCost - totalSaved);
-    const progressPercent = projectedTripCost > 0 ? Math.min(100, (totalSaved / projectedTripCost) * 100) : 0;
+    const availableToSpend = activeGiftCardCurrentBalance + cashTotal;
 
-    return { giftCardAvailable, cashTotal, totalSaved, remainingGoal, progressPercent };
+    // 2. Goal Progress: Total of INITIAL gift card values + cash savings
+    const totalInitialGiftCards = cards.reduce((sum, card) => sum + card.originalBalance, 0);
+    const totalProgressValue = totalInitialGiftCards + cashTotal;
+    const progressPercent = projectedTripCost > 0 ? Math.min(100, (totalProgressValue / projectedTripCost) * 100) : 0;
+    
+    // 3. Total of gift cards already used (original value of completed cards)
+    const totalUsedGiftCardsValue = cards.reduce((sum, card) => {
+      return card.dateCompleted ? sum + card.originalBalance : sum;
+    }, 0);
+
+    // 4. Total Spent (Initial - Current for all cards)
+    const totalSpentOffCards = cards.reduce((sum, card) => {
+      return sum + (card.originalBalance - card.currentBalance);
+    }, 0);
+
+    return { 
+      availableToSpend, 
+      cashTotal, 
+      totalProgressValue, 
+      progressPercent, 
+      totalUsedGiftCardsValue,
+      totalSpentOffCards,
+      activeGiftCardCurrentBalance
+    };
   }, [cards, cashEntries, projectedTripCost]);
 
   const toggleReveal = (id: string) => {
@@ -69,9 +89,6 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
         return {
           ...card,
           dateCompleted: card.dateCompleted ? undefined : new Date().toISOString(),
-          // If marking complete, it's often useful to set current balance to 0, 
-          // but we'll leave the balance as is and just ignore it in totals 
-          // to preserve the "final state" of the card.
         };
       }
       return card;
@@ -164,30 +181,32 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
       {/* Financial Summary Dashboard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { icon: CreditCard, color: 'blue', label: 'Active Gift Cards', value: stats.giftCardAvailable },
-          { icon: Banknote, color: 'emerald', label: 'Cash Savings', value: stats.cashTotal },
-          { icon: Wallet, color: 'purple', label: 'Total Funds', value: stats.totalSaved },
+          { icon: Wallet, color: 'blue', label: 'Available to Spend', value: stats.availableToSpend, sub: 'Active Cards + Cash' },
+          { icon: Banknote, color: 'emerald', label: 'Cash Savings', value: stats.cashTotal, sub: 'Total Stashed Cash' },
+          { icon: History, color: 'amber', label: 'Gift Cards Used', value: stats.totalUsedGiftCardsValue, sub: 'Retired Card Value' },
         ].map((item, idx) => (
-          <div key={idx} className="bg-white p-5 sm:p-7 rounded-[2rem] border-2 border-slate-200 shadow-sm relative overflow-hidden">
-            <div className={`bg-${item.color}-100 w-12 h-12 rounded-2xl flex items-center justify-center mb-5`}>
+          <div key={idx} className="bg-white p-5 sm:p-7 rounded-[2rem] border-2 border-slate-200 shadow-sm relative overflow-hidden group">
+            <div className={`bg-${item.color}-100 w-12 h-12 rounded-2xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110`}>
               <item.icon className={`w-6 h-6 text-${item.color}-600`} />
             </div>
             <p className="text-xs text-slate-400 font-black uppercase tracking-widest mb-1">{item.label}</p>
             <p className="text-3xl font-black text-slate-900 tabular-nums">
               ${item.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
+            <p className="text-[10px] text-slate-300 font-bold mt-2 uppercase tracking-wide">{item.sub}</p>
           </div>
         ))}
 
-        <div className="bg-slate-900 p-5 sm:p-7 rounded-[2rem] shadow-2xl flex flex-col justify-between border-b-4 border-blue-600">
-          <div>
+        <div className="bg-slate-900 p-5 sm:p-7 rounded-[2rem] shadow-2xl flex flex-col justify-between border-b-4 border-blue-600 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+          <div className="relative z-10">
             <div className="flex justify-between items-start mb-4">
-              <h3 className="font-black text-slate-500 text-[10px] uppercase tracking-[0.2em]">Goal Progress</h3>
+              <h3 className="font-black text-slate-500 text-[10px] uppercase tracking-[0.2em]">Acquisition Goal Progress</h3>
               <div className="bg-blue-600/20 p-1.5 rounded-lg"><Target className="w-4 h-4 text-blue-400" /></div>
             </div>
             <div className="flex items-end gap-2 mb-3">
               <p className="text-4xl font-black text-white">{Math.round(stats.progressPercent)}%</p>
-              <p className="text-[10px] text-slate-500 mb-1.5 font-black uppercase tracking-wider">of ${projectedTripCost.toLocaleString()}</p>
+              <p className="text-[10px] text-slate-500 mb-1.5 font-black uppercase tracking-wider">Saved ${stats.totalProgressValue.toLocaleString()}</p>
             </div>
             <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden mb-3">
               <div 
@@ -195,9 +214,14 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                 style={{ width: `${stats.progressPercent}%` }}
               />
             </div>
-            <p className="text-[11px] text-blue-400 font-black uppercase tracking-widest">
-              ${stats.remainingGoal.toLocaleString()} to go
-            </p>
+            <div className="flex justify-between items-center">
+              <p className="text-[11px] text-blue-400 font-black uppercase tracking-widest">
+                Goal: ${projectedTripCost.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">
+                Spent: ${stats.totalSpentOffCards.toLocaleString()}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -208,7 +232,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
           <div className="flex justify-between items-center px-2">
             <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
               <div className="bg-blue-600 p-1.5 rounded-lg"><CreditCard className="w-5 h-5 text-white" /></div>
-              Gift Cards
+              Manage Gift Cards
             </h3>
             <button 
               onClick={() => { resetCardForm(); setEditingCardId(null); setIsAddingCard(true); }}
@@ -313,7 +337,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
 
                         <div className="text-left sm:text-right min-w-[100px] sm:min-w-[120px]">
                           <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCompleted ? 'text-emerald-500' : 'text-blue-600'}`}>
-                            {isCompleted ? 'Spent At' : 'Current'}
+                            {isCompleted ? 'Final Value' : 'Available'}
                           </p>
                           <p className={`font-black text-xl sm:text-2xl tabular-nums tracking-tight ${isCompleted ? 'text-emerald-700' : 'text-slate-900'}`}>
                             ${card.currentBalance.toFixed(2)}
@@ -333,7 +357,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
           <div className="flex justify-between items-center px-2">
             <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
               <div className="bg-emerald-600 p-1.5 rounded-lg"><Banknote className="w-5 h-5 text-white" /></div>
-              Cash Funds
+              Physical Cash
             </h3>
             <button 
               onClick={() => setIsAddingCash(true)}
@@ -368,7 +392,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                     </div>
                     <div className="flex items-center gap-4 sm:gap-8">
                       <div className="text-right mr-10 sm:mr-0">
-                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">SAVED</p>
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">STASHED</p>
                         <p className="text-xl sm:text-2xl font-black text-slate-900 tabular-nums tracking-tight">${entry.amount.toFixed(2)}</p>
                       </div>
                       <button 
