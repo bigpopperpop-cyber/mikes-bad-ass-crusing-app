@@ -43,24 +43,20 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
   }, [cashEntries]);
 
   const stats = useMemo(() => {
-    // 1. Available to Spend: Current balance of non-completed cards + total cash
     const activeGiftCardCurrentBalance = cards.reduce((sum, card) => {
       return card.dateCompleted ? sum : sum + card.currentBalance;
     }, 0);
     const cashTotal = cashEntries.reduce((sum, entry) => sum + entry.amount, 0);
     const availableToSpend = activeGiftCardCurrentBalance + cashTotal;
 
-    // 2. Goal Progress: Total of INITIAL gift card values + cash savings
     const totalInitialGiftCards = cards.reduce((sum, card) => sum + card.originalBalance, 0);
     const totalProgressValue = totalInitialGiftCards + cashTotal;
     const progressPercent = projectedTripCost > 0 ? Math.min(100, (totalProgressValue / projectedTripCost) * 100) : 0;
     
-    // 3. Total of gift cards already used (original value of completed cards)
     const totalUsedGiftCardsValue = cards.reduce((sum, card) => {
       return card.dateCompleted ? sum + card.originalBalance : sum;
     }, 0);
 
-    // 4. Total Spent (Initial - Current for all cards)
     const totalSpentOffCards = cards.reduce((sum, card) => {
       return sum + (card.originalBalance - card.currentBalance);
     }, 0);
@@ -243,7 +239,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
             </button>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border-2 border-slate-200 shadow-sm">
+          <div className="bg-white rounded-[2.5rem] border-2 border-slate-200 shadow-sm overflow-hidden">
             <div className="divide-y divide-slate-100">
               {cards.length === 0 ? (
                 <div className="p-16 text-center text-slate-400 font-bold italic opacity-60">
@@ -260,76 +256,79 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                   return (
                     <div 
                       key={card.id} 
-                      className={`p-6 flex flex-col sm:flex-row sm:items-center justify-between transition-all relative group ${isCompleted ? 'bg-emerald-50/50 opacity-75' : 'hover:bg-slate-50'}`}
+                      className={`p-6 flex flex-col lg:flex-row lg:items-center justify-between transition-all relative group gap-6 ${isCompleted ? 'bg-emerald-50/50 opacity-75' : 'hover:bg-slate-50'}`}
                     >
-                      
-                      {/* Action buttons */}
-                      <div className="absolute top-4 right-4 flex items-center gap-1 sm:static sm:order-last">
-                        <button 
-                          onClick={() => toggleComplete(card.id)}
-                          className={`p-3 rounded-xl transition-all active-scale ${isCompleted ? 'text-emerald-600 bg-emerald-100' : 'text-slate-300 hover:text-emerald-600 hover:bg-emerald-50'}`}
-                          title={isCompleted ? "Mark as Active" : "Mark as Fully Used"}
-                        >
-                          <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
-                        </button>
-                        <button 
-                          onClick={() => startEditing(card)} 
-                          className="p-3 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active-scale"
-                          title="Edit full card details"
-                        >
-                          <Edit2 className="w-5 h-5 sm:w-6 sm:h-6" />
-                        </button>
-                        <button 
-                          onClick={() => removeCard(card.id)} 
-                          className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
-                          title="Remove Card"
-                        >
-                          <Trash2 className="w-5 h-5 sm:w-6 sm:h-6" />
-                        </button>
-                      </div>
-
-                      <div className="flex items-start gap-4 sm:gap-5 mb-5 sm:mb-0 max-w-[85%] sm:max-w-none">
-                        <div className={`p-3 sm:p-4 rounded-[1.25rem] border shrink-0 transition-colors ${isCompleted ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
-                          {isCompleted ? <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /> : <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className={`font-black text-lg sm:text-xl leading-none truncate ${isCompleted ? 'text-emerald-900 line-through decoration-emerald-300' : 'text-slate-900'}`}>{card.source}</p>
-                            {isCompleted && <span className="text-[8px] font-black bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Spent</span>}
+                      {/* Left: Card Info & Actions (Header style for iPad portrait) */}
+                      <div className="flex items-start justify-between w-full lg:w-auto gap-4">
+                        <div className="flex items-start gap-4 sm:gap-5 min-w-0">
+                          <div className={`p-3 sm:p-4 rounded-[1.25rem] border shrink-0 transition-colors ${isCompleted ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                            {isCompleted ? <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /> : <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />}
                           </div>
-                          <div className="flex items-center gap-2 mt-2 group/num relative">
-                            <button 
-                              onClick={() => copyToClipboard(card.cardNumber, card.id, 'number')}
-                              className={`text-[12px] sm:text-[13px] font-mono font-bold uppercase tracking-wider px-2 py-1 -ml-2 rounded-lg transition-all text-left flex items-center gap-2 ${isNumberCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'}`}
-                              title="Click to copy card number"
-                            >
-                              {formatCardNumber(card.cardNumber, revealed)}
-                              {isNumberCopied ? <ClipboardCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 opacity-0 group-hover/num:opacity-100" />}
-                            </button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); toggleReveal(card.id); }}
-                              className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 transition-colors shrink-0"
-                              title={revealed ? "Hide code" : "Show code"}
-                            >
-                              {revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                          {card.accessCode && (
-                            <div className="flex items-center gap-2 mt-1">
-                               <button 
-                                 onClick={() => copyToClipboard(card.accessCode, card.id, 'code')}
-                                 className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 -ml-2 rounded flex items-center gap-1.5 transition-all ${isCodeCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-300 hover:bg-slate-100 hover:text-slate-500'}`}
-                                 title="Click to copy Access Code"
-                               >
-                                 Access Code: {revealed ? card.accessCode : '••••'}
-                                 {isCodeCopied && <Check className="w-3 h-3" />}
-                               </button>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className={`font-black text-lg sm:text-xl leading-none truncate ${isCompleted ? 'text-emerald-900 line-through decoration-emerald-300' : 'text-slate-900'}`}>{card.source}</p>
+                              {isCompleted && <span className="text-[8px] font-black bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Spent</span>}
                             </div>
-                          )}
+                            <div className="flex items-center gap-2 mt-2 group/num relative">
+                              <button 
+                                onClick={() => copyToClipboard(card.cardNumber, card.id, 'number')}
+                                className={`text-[12px] sm:text-[13px] font-mono font-bold uppercase tracking-wider px-2 py-1 -ml-2 rounded-lg transition-all text-left flex items-center gap-2 ${isNumberCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'}`}
+                                title="Click to copy card number"
+                              >
+                                {formatCardNumber(card.cardNumber, revealed)}
+                                {isNumberCopied ? <ClipboardCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 opacity-0 lg:group-hover/num:opacity-100" />}
+                              </button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); toggleReveal(card.id); }}
+                                className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 transition-colors shrink-0"
+                                title={revealed ? "Hide code" : "Show code"}
+                              >
+                                {revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                            {card.accessCode && (
+                              <div className="flex items-center gap-2 mt-1">
+                                 <button 
+                                   onClick={() => copyToClipboard(card.accessCode, card.id, 'code')}
+                                   className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 -ml-2 rounded flex items-center gap-1.5 transition-all ${isCodeCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-300 hover:bg-slate-100 hover:text-slate-500'}`}
+                                   title="Click to copy Access Code"
+                                 >
+                                   Access Code: {revealed ? card.accessCode : '••••'}
+                                   {isCodeCopied && <Check className="w-3 h-3" />}
+                                 </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons: Pinned to right in the header section */}
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button 
+                            onClick={() => toggleComplete(card.id)}
+                            className={`p-3 rounded-xl transition-all active-scale ${isCompleted ? 'text-emerald-600 bg-emerald-100' : 'text-slate-300 hover:text-emerald-600 hover:bg-emerald-50'}`}
+                            title={isCompleted ? "Mark as Active" : "Mark as Fully Used"}
+                          >
+                            <CheckCircle2 className="w-5 h-5 sm:w-6" />
+                          </button>
+                          <button 
+                            onClick={() => startEditing(card)} 
+                            className="p-3 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active-scale"
+                            title="Edit full card details"
+                          >
+                            <Edit2 className="w-5 h-5 sm:w-6" />
+                          </button>
+                          <button 
+                            onClick={() => removeCard(card.id)} 
+                            className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
+                            title="Remove Card"
+                          >
+                            <Trash2 className="w-5 h-5 sm:w-6" />
+                          </button>
                         </div>
                       </div>
                       
-                      <div className="flex items-center justify-start sm:justify-end gap-6 sm:gap-10 border-t border-slate-50 pt-5 sm:pt-0 sm:border-0 sm:mr-4">
+                      {/* Right: Balances (Footer style for iPad portrait) */}
+                      <div className="flex items-center justify-between sm:justify-start lg:justify-end gap-6 sm:gap-10 border-t border-slate-50 lg:border-0 pt-5 lg:pt-0 w-full lg:w-auto">
                         <div className="text-left sm:text-right">
                           <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Initial</p>
                           <p className="font-bold text-slate-400 tabular-nums text-sm sm:text-base">${card.originalBalance.toFixed(2)}</p>
