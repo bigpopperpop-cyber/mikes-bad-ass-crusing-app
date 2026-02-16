@@ -10,6 +10,13 @@ export interface GiftCard {
   dateCompleted?: string;
 }
 
+export interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  category: string;
+}
+
 export type Category = 'Documents' | 'Clothing' | 'Medical/Personal';
 
 export interface PackingItem {

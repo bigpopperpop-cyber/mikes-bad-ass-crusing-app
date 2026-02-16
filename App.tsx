@@ -1,14 +1,16 @@
 
-import React, { useState, useEffect } from 'react';
-import { Ship, Calendar, Package, Wallet, Menu, X, Settings2, Save, Database } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Ship, Calendar, Package, Wallet, Menu, X, Settings2, Save, Database, Target } from 'lucide-react';
 import { CountdownTimer } from './components/CountdownTimer';
 import { GiftCardLedger } from './components/GiftCardLedger';
 import { PackingChecklist } from './components/PackingChecklist';
 import { AIAssistant } from './components/AIAssistant';
 import { DataManagement } from './components/DataManagement';
+import { GoalPlanner } from './components/GoalPlanner';
+import { Expense } from './types';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'ledger' | 'packing' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'ledger' | 'packing' | 'settings' | 'goal'>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isEditingTrip, setIsEditingTrip] = useState(false);
   
@@ -18,23 +20,32 @@ const App: React.FC = () => {
     return saved || '2028-07-01';
   });
 
-  // Persistence for projected trip cost
-  const [projectedTripCost, setProjectedTripCost] = useState<number>(() => {
-    const saved = localStorage.getItem('cruise_projected_cost');
-    return saved ? parseFloat(saved) : 5000;
+  // Persistence for expenses
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    const saved = localStorage.getItem('cruise_expenses');
+    return saved ? JSON.parse(saved) : [
+      { id: '1', description: 'Cruise Fare (Final Balance)', amount: 3500, category: 'Cruise' },
+      { id: '2', description: 'Pre-Cruise Hotel', amount: 250, category: 'Travel' },
+      { id: '3', description: 'Gas & Parking', amount: 150, category: 'Travel' }
+    ];
   });
 
+  // Derived Projected Trip Cost from expenses
+  const projectedTripCost = useMemo(() => {
+    return expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  }, [expenses]);
+
   const [tempDate, setTempDate] = useState(departureDate);
+
+  useEffect(() => {
+    localStorage.setItem('cruise_expenses', JSON.stringify(expenses));
+    localStorage.setItem('cruise_projected_cost', projectedTripCost.toString());
+  }, [expenses, projectedTripCost]);
 
   const saveTripSettings = () => {
     setDepartureDate(tempDate);
     localStorage.setItem('cruise_departure_date', tempDate);
     setIsEditingTrip(false);
-  };
-
-  const handleUpdateProjectedCost = (newCost: number) => {
-    setProjectedTripCost(newCost);
-    localStorage.setItem('cruise_projected_cost', newCost.toString());
   };
 
   return (
@@ -58,6 +69,10 @@ const App: React.FC = () => {
           <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
             <Calendar className="w-5 h-5" />
             <span className="font-semibold text-sm">Dashboard</span>
+          </button>
+          <button onClick={() => { setActiveTab('goal'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'goal' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            <Target className="w-5 h-5" />
+            <span className="font-semibold text-sm">Trip Goal Planner</span>
           </button>
           <button onClick={() => { setActiveTab('ledger'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'ledger' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
             <Wallet className="w-5 h-5" />
@@ -151,10 +166,13 @@ const App: React.FC = () => {
               </div>
             </>
           )}
+          {activeTab === 'goal' && (
+            <GoalPlanner expenses={expenses} setExpenses={setExpenses} />
+          )}
           {activeTab === 'ledger' && (
             <GiftCardLedger 
               projectedTripCost={projectedTripCost} 
-              onUpdateProjectedCost={handleUpdateProjectedCost} 
+              onUpdateProjectedCost={() => {}} // Disabled manual update since it's driven by expenses now
             />
           )}
           {activeTab === 'packing' && <PackingChecklist />}
