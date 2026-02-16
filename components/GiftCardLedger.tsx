@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { GiftCard, CashEntry } from '../types';
-import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X } from 'lucide-react';
+import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy } from 'lucide-react';
 
 interface Props {
   projectedTripCost: number;
@@ -22,6 +23,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
   const [isAddingCash, setIsAddingCash] = useState(false);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+  const [revealedCardIds, setRevealedCardIds] = useState<Set<string>>(new Set());
   
   const [newCard, setNewCard] = useState<Partial<GiftCard>>({
     cardNumber: '', pin: '', originalBalance: 0, currentBalance: 0, source: '',
@@ -50,9 +52,21 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
     return { giftCardAvailable, cashTotal, totalSaved, remainingGoal, progressPercent };
   }, [cards, cashEntries, projectedTripCost]);
 
+  const toggleReveal = (id: string) => {
+    const newSet = new Set(revealedCardIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setRevealedCardIds(newSet);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    // Optional: Add a toast notification here
+  };
+
   const handleAddCard = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newCard.cardNumber && newCard.pin && newCard.source) {
+    if (newCard.cardNumber && newCard.source) {
       const card: GiftCard = {
         id: Math.random().toString(36).substr(2, 9),
         cardNumber: newCard.cardNumber || '',
@@ -95,9 +109,17 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
     }
   };
 
+  const formatCardNumber = (num: string, revealed: boolean) => {
+    if (revealed) return num.match(/.{1,4}/g)?.join(' ') || num;
+    const last4 = num.slice(-4);
+    const masked = num.slice(0, -4).replace(/./g, '•');
+    const fullMasked = masked + last4;
+    return fullMasked.match(/.{1,4}/g)?.join(' ') || fullMasked;
+  };
+
   return (
     <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-700">
-      {/* Financial Summary Dashboard - Fluid Grid for iPads */}
+      {/* Financial Summary Dashboard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
           { icon: CreditCard, color: 'blue', label: 'Gift Cards', value: stats.giftCardAvailable, sub: 'Available' },
@@ -163,65 +185,89 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                   Register your cards to start saving.
                 </div>
               ) : (
-                cards.map(card => (
-                  <div key={card.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between transition-colors active:bg-slate-50 relative">
-                    <div className="flex items-center gap-5 mb-5 sm:mb-0">
-                      <div className="bg-slate-50 p-4 rounded-[1.25rem] text-slate-400 border border-slate-100">
-                        <CreditCard className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <p className="font-black text-slate-900 text-xl leading-none">{card.source}</p>
-                        <p className="text-xs font-mono font-bold text-slate-400 mt-2 uppercase tracking-tight">
-                          ENDING IN ****{card.cardNumber.slice(-4)}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-10 border-t border-slate-50 pt-5 sm:pt-0 sm:border-0">
-                      <div className="text-right">
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Initial</p>
-                        <p className="font-bold text-slate-400 tabular-nums">${card.originalBalance.toFixed(2)}</p>
-                      </div>
-
-                      <div className="text-right min-w-[120px]">
-                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Current</p>
-                        {editingCardId === card.id ? (
-                          <div className="flex items-center gap-2">
-                            <input 
-                              autoFocus
-                              type="number"
-                              step="0.01"
-                              className="w-28 bg-blue-50 border-2 border-blue-500 rounded-xl px-3 py-2 text-right font-black text-slate-900 outline-none text-lg"
-                              value={editValue}
-                              onChange={e => setEditValue(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') saveEdit(card.id);
-                                if (e.key === 'Escape') setEditingCardId(null);
-                              }}
-                            />
-                            <button onClick={() => saveEdit(card.id)} className="p-2 bg-emerald-500 text-white rounded-xl active-scale">
-                              <Check className="w-5 h-5" />
+                cards.map(card => {
+                  const revealed = revealedCardIds.has(card.id);
+                  return (
+                    <div key={card.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between transition-colors active:bg-slate-50 relative">
+                      <div className="flex items-start gap-5 mb-5 sm:mb-0">
+                        <div className="bg-slate-50 p-4 rounded-[1.25rem] text-slate-400 border border-slate-100 shrink-0">
+                          <CreditCard className="w-6 h-6" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-black text-slate-900 text-xl leading-none">{card.source}</p>
+                          <div className="flex items-center gap-2 mt-2 group/num">
+                            <p className="text-[13px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                              {formatCardNumber(card.cardNumber, revealed)}
+                            </p>
+                            <button 
+                              onClick={() => toggleReveal(card.id)}
+                              className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 transition-colors"
+                            >
+                              {revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>
+                            {revealed && (
+                              <button 
+                                onClick={() => copyToClipboard(card.cardNumber)}
+                                className="p-1.5 hover:bg-slate-100 rounded-md text-blue-500 transition-colors"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-3 cursor-pointer group" onClick={() => startEditing(card)}>
-                            <p className="font-black text-slate-900 text-2xl tabular-nums tracking-tight">${card.currentBalance.toFixed(2)}</p>
-                            <div className="p-2 bg-slate-50 rounded-lg group-active:bg-blue-100 transition-colors">
-                              <Edit2 className="w-4 h-4 text-slate-400" />
-                            </div>
-                          </div>
-                        )}
+                          {card.pin && (
+                             <p className="text-[10px] font-black text-slate-300 mt-1 uppercase tracking-widest">
+                               PIN: {revealed ? card.pin : '••••'}
+                             </p>
+                          )}
+                        </div>
                       </div>
+                      
+                      <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-10 border-t border-slate-50 pt-5 sm:pt-0 sm:border-0">
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Initial</p>
+                          <p className="font-bold text-slate-400 tabular-nums">${card.originalBalance.toFixed(2)}</p>
+                        </div>
 
-                      <button 
-                        onClick={() => setCards(cards.filter(c => c.id !== card.id))} 
-                        className="p-3 text-slate-300 hover:text-red-500 active-scale"
-                      >
-                        <Trash2 className="w-6 h-6" />
-                      </button>
+                        <div className="text-right min-w-[120px]">
+                          <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Current</p>
+                          {editingCardId === card.id ? (
+                            <div className="flex items-center gap-2">
+                              <input 
+                                autoFocus
+                                type="number"
+                                step="0.01"
+                                className="w-28 bg-blue-50 border-2 border-blue-500 rounded-xl px-3 py-2 text-right font-black text-slate-900 outline-none text-lg"
+                                value={editValue}
+                                onChange={e => setEditValue(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') saveEdit(card.id);
+                                  if (e.key === 'Escape') setEditingCardId(null);
+                                }}
+                              />
+                              <button onClick={() => saveEdit(card.id)} className="p-2 bg-emerald-500 text-white rounded-xl active-scale">
+                                <Check className="w-5 h-5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-3 cursor-pointer group" onClick={() => startEditing(card)}>
+                              <p className="font-black text-slate-900 text-2xl tabular-nums tracking-tight">${card.currentBalance.toFixed(2)}</p>
+                              <div className="p-2 bg-slate-50 rounded-lg group-active:bg-blue-100 transition-colors">
+                                <Edit2 className="w-4 h-4 text-slate-400" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <button 
+                          onClick={() => setCards(cards.filter(c => c.id !== card.id))} 
+                          className="p-3 text-slate-300 hover:text-red-500 active-scale"
+                        >
+                          <Trash2 className="w-6 h-6" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -285,7 +331,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
         </div>
       </div>
 
-      {/* Modern High-Performance Modals Optimized for iOS */}
+      {/* Modern High-Performance Modals */}
       {(isAddingCard || isAddingCash) && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-300">
           <div 
@@ -312,18 +358,20 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         required
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Card Number (Last 4)</label>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Full Card Number</label>
                       <input 
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg"
-                        placeholder="****"
+                        type="text"
+                        inputMode="numeric"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg tracking-widest font-mono"
+                        placeholder="Enter all digits"
                         value={newCard.cardNumber}
-                        onChange={e => setNewCard({...newCard, cardNumber: e.target.value})}
+                        onChange={e => setNewCard({...newCard, cardNumber: e.target.value.replace(/\D/g, '')})}
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">PIN Code</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Security PIN</label>
                       <input 
                         type="password"
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg"
@@ -332,6 +380,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         onChange={e => setNewCard({...newCard, pin: e.target.value})}
                       />
                     </div>
+                    <div className="hidden sm:block"></div>
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Original $</label>
                       <input 

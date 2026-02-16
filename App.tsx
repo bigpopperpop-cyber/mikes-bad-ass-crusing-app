@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Ship, Calendar, Package, Wallet, Menu, X, Settings2, Save, Database, Target, Banknote } from 'lucide-react';
+import { Ship, Calendar, Package, Wallet, Menu, X, Settings2, Save, Database, Target, Banknote, MapPin, Type } from 'lucide-react';
 import { CountdownTimer } from './components/CountdownTimer';
 import { GiftCardLedger } from './components/GiftCardLedger';
 import { PackingChecklist } from './components/PackingChecklist';
@@ -18,6 +18,14 @@ const App: React.FC = () => {
     return saved || '2028-07-01';
   });
 
+  const [tripName, setTripName] = useState(() => {
+    return localStorage.getItem('cruise_trip_name') || 'High School Graduation Trip';
+  });
+
+  const [destination, setDestination] = useState(() => {
+    return localStorage.getItem('cruise_destination') || 'Carnival Breeze';
+  });
+
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('cruise_expenses');
     return saved ? JSON.parse(saved) : [
@@ -32,6 +40,8 @@ const App: React.FC = () => {
   }, [expenses]);
 
   const [tempDate, setTempDate] = useState(departureDate);
+  const [tempName, setTempName] = useState(tripName);
+  const [tempDestination, setTempDestination] = useState(destination);
 
   useEffect(() => {
     localStorage.setItem('cruise_expenses', JSON.stringify(expenses));
@@ -40,13 +50,24 @@ const App: React.FC = () => {
 
   const saveTripSettings = () => {
     setDepartureDate(tempDate);
+    setTripName(tempName);
+    setDestination(tempDestination);
     localStorage.setItem('cruise_departure_date', tempDate);
+    localStorage.setItem('cruise_trip_name', tempName);
+    localStorage.setItem('cruise_destination', tempDestination);
     setIsEditingTrip(false);
+  };
+
+  const openEditor = () => {
+    setTempDate(departureDate);
+    setTempName(tripName);
+    setTempDestination(destination);
+    setIsEditingTrip(true);
   };
 
   return (
     <div className="h-[100dvh] w-full flex flex-col md:flex-row bg-slate-50 overflow-hidden">
-      {/* Sidebar - Visible for all iPads/Tablets (md and up) */}
+      {/* Sidebar */}
       <nav className={`
         fixed inset-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
         md:relative md:translate-x-0 transition-all duration-300 ease-in-out
@@ -97,12 +118,12 @@ const App: React.FC = () => {
         <div className="pt-6 border-t border-slate-800 mt-auto safe-pb">
           <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Destination</p>
-            <p className="text-sm font-black text-white uppercase tracking-wider">Carnival Breeze</p>
+            <p className="text-sm font-black text-white uppercase tracking-wider truncate">{destination}</p>
           </div>
         </div>
       </nav>
 
-      {/* Mobile-only Header (Small Screens Only) */}
+      {/* Mobile-only Header */}
       <div className="md:hidden bg-slate-900 text-white flex justify-between items-center sticky top-0 z-40 safe-pt shadow-xl">
         <div className="flex items-center gap-3 px-6 py-4">
           <div className="bg-blue-600 p-1.5 rounded-lg">
@@ -118,15 +139,14 @@ const App: React.FC = () => {
         </button>
       </div>
 
-      {/* Backdrop - Active only on small mobile devices */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-300" 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden" 
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* Main Content Area - Scrollable with Safe areas */}
+      {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden safe-pb safe-pr md:safe-pt bg-slate-50">
         <div className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8 lg:p-10 space-y-8 lg:space-y-10">
           {activeTab === 'dashboard' && (
@@ -140,44 +160,72 @@ const App: React.FC = () => {
                   </p>
                 </div>
                 <button 
-                  onClick={() => setIsEditingTrip(true)}
+                  onClick={openEditor}
                   className="flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-600 font-black text-sm active-scale shadow-sm transition-all hover:border-blue-500 hover:text-blue-600"
                 >
                   <Settings2 className="w-4 h-4" />
-                  Edit Trip Date
+                  Edit Trip Details
                 </button>
               </div>
 
               {isEditingTrip && (
-                <div className="bg-white border-2 border-blue-100 p-6 rounded-[2rem] flex flex-col md:flex-row items-end gap-5 shadow-xl shadow-blue-900/5 animate-in slide-in-from-top-4 duration-300">
-                  <div className="flex-1 w-full">
-                    <label className="block text-xs font-black text-blue-600 uppercase tracking-widest mb-2.5">Select Departure Date</label>
-                    <input 
-                      type="date"
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 outline-none focus:border-blue-500 font-bold text-slate-900 text-lg"
-                      value={tempDate}
-                      onChange={(e) => setTempDate(e.target.value)}
-                    />
+                <div className="bg-white border-2 border-blue-100 p-6 sm:p-8 rounded-[2rem] shadow-2xl shadow-blue-900/5 animate-in slide-in-from-top-4 duration-300">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                        <Type className="w-3 h-3" /> Trip Name
+                      </label>
+                      <input 
+                        type="text"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 outline-none focus:border-blue-500 font-bold text-slate-900 text-lg"
+                        value={tempName}
+                        placeholder="Celebration Name"
+                        onChange={(e) => setTempName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                        <MapPin className="w-3 h-3" /> Destination / Ship
+                      </label>
+                      <input 
+                        type="text"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 outline-none focus:border-blue-500 font-bold text-slate-900 text-lg"
+                        value={tempDestination}
+                        placeholder="e.g. Carnival Breeze"
+                        onChange={(e) => setTempDestination(e.target.value)}
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                        <Calendar className="w-3 h-3" /> Departure Date
+                      </label>
+                      <input 
+                        type="date"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 outline-none focus:border-blue-500 font-bold text-slate-900 text-lg"
+                        value={tempDate}
+                        onChange={(e) => setTempDate(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex gap-3 w-full md:w-auto">
+                  <div className="flex gap-4">
                     <button 
                       onClick={() => setIsEditingTrip(false)}
-                      className="flex-1 md:flex-none px-6 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl active-scale"
+                      className="flex-1 px-6 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl active-scale"
                     >
                       Cancel
                     </button>
                     <button 
                       onClick={saveTripSettings}
-                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-black rounded-2xl active-scale shadow-lg shadow-blue-200"
+                      className="flex-1 flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-black rounded-2xl active-scale shadow-lg shadow-blue-200"
                     >
-                      <Save className="w-4 h-4" />
-                      Save Date
+                      <Save className="w-5 h-5" />
+                      Save Details
                     </button>
                   </div>
                 </div>
               )}
 
-              <CountdownTimer targetDateString={departureDate} />
+              <CountdownTimer targetDateString={departureDate} tripName={tripName} />
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
                 <div className="space-y-4">
@@ -190,7 +238,7 @@ const App: React.FC = () => {
                   <div className="flex items-center justify-between px-2">
                     <h3 className="text-xl font-black text-slate-900">Cruise AI Assistant</h3>
                   </div>
-                  <AIAssistant />
+                  <AIAssistant tripName={tripName} />
                 </div>
               </div>
             </>

@@ -3,9 +3,10 @@ import type { CountdownState } from '../types';
 
 interface Props {
   targetDateString: string;
+  tripName: string;
 }
 
-export const CountdownTimer: React.FC<Props> = ({ targetDateString }) => {
+export const CountdownTimer: React.FC<Props> = ({ targetDateString, tripName }) => {
   const [timeLeft, setTimeLeft] = useState<CountdownState | null>(null);
 
   useEffect(() => {
@@ -46,13 +47,12 @@ export const CountdownTimer: React.FC<Props> = ({ targetDateString }) => {
             <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
             <h4 className="text-blue-400 font-black uppercase tracking-[0.2em] text-[10px]">Countdown to Departure</h4>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight mb-2">High School Graduation Trip</h2>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight mb-2 truncate max-w-lg">{tripName}</h2>
           <p className="text-slate-400 text-sm font-bold flex items-center justify-center xl:justify-start gap-2">
             Sail Date: {new Date(targetDateString + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
 
-        {/* Improved grid scaling: col-gap adjusts from 2 to 10 depending on screen width */}
         <div className="grid grid-cols-4 gap-2 sm:gap-4 md:gap-6 lg:gap-8 xl:gap-10">
           {[
             { label: 'Days', value: timeLeft.days },

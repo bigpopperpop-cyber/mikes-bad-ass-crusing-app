@@ -1,9 +1,12 @@
-
 import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { Sparkles, Send, Loader2, Bot } from 'lucide-react';
 
-export const AIAssistant: React.FC = () => {
+interface Props {
+  tripName: string;
+}
+
+export const AIAssistant: React.FC<Props> = ({ tripName }) => {
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,7 +21,7 @@ export const AIAssistant: React.FC = () => {
       const result = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `You are a helpful travel assistant for a family going on a cruise in Summer 2028. 
-        Context: It's a high school graduation trip. 
+        Celebration: ${tripName}. 
         User Query: ${prompt}`,
         config: {
           systemInstruction: 'Provide concise, practical cruise travel advice. Focus on packing tips, itinerary planning, or saving money on cruises. Use bullet points where appropriate.',
