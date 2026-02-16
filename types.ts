@@ -1,4 +1,11 @@
 
+export interface GiftCardLog {
+  id: string;
+  date: string;
+  amount: number;
+  description: string;
+}
+
 export interface GiftCard {
   id: string;
   cardNumber: string;
@@ -8,6 +15,7 @@ export interface GiftCard {
   source: string;
   dateReceived: string;
   dateCompleted?: string;
+  logs?: GiftCardLog[];
 }
 
 export interface CashEntry {
