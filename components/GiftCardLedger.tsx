@@ -1,14 +1,15 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { GiftCard, CashEntry, GiftCardLog } from '../types';
-import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2, History, ChevronDown, ChevronUp, ShoppingCart } from 'lucide-react';
+import { GiftCard, CashEntry, GiftCardLog, Expense } from '../types';
+import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2, History, ChevronDown, ChevronUp, ShoppingCart, Tag } from 'lucide-react';
 
 interface Props {
   projectedTripCost: number;
   onUpdateProjectedCost: (cost: number) => void;
+  expenses: Expense[];
 }
 
-export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
+export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses }) => {
   const [cards, setCards] = useState<GiftCard[]>(() => {
     const saved = localStorage.getItem('cruise_gift_cards');
     return saved ? JSON.parse(saved) : [];
@@ -452,13 +453,22 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                               </div>
                               <div>
                                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Allocation / Purpose</label>
-                                <input 
-                                  type="text"
-                                  placeholder="e.g. Dinner, Gift Shop, Tips"
-                                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-blue-500"
-                                  value={logFormData.description}
-                                  onChange={e => setLogFormData({...logFormData, description: e.target.value})}
-                                />
+                                <div className="relative">
+                                  <select 
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:border-blue-500 appearance-none pr-8 transition-all"
+                                    value={logFormData.description}
+                                    onChange={e => setLogFormData({...logFormData, description: e.target.value})}
+                                  >
+                                    <option value="">Select Budget Item...</option>
+                                    {expenses.map((exp) => (
+                                      <option key={exp.id} value={exp.description}>
+                                        {exp.description} (${exp.amount.toLocaleString()})
+                                      </option>
+                                    ))}
+                                    <option value="General/Other Spending">General / Other Spending</option>
+                                  </select>
+                                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                                </div>
                               </div>
                               <button 
                                 onClick={() => addLogEntry(card.id)}
@@ -481,7 +491,10 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                                     {card.logs.map(log => (
                                       <div key={log.id} className="p-4 flex items-center justify-between group">
                                         <div className="min-w-0 flex-1">
-                                          <p className="text-[10px] font-black text-slate-900 uppercase truncate leading-tight">{log.description}</p>
+                                          <div className="flex items-center gap-1.5">
+                                            <Tag className="w-2.5 h-2.5 text-slate-300" />
+                                            <p className="text-[10px] font-black text-slate-900 uppercase truncate leading-tight">{log.description}</p>
+                                          </div>
                                           <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter mt-1">
                                             {new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                           </p>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Ship, Calendar, Package, Wallet, Menu, X, Settings2, Save, Database, Target, Banknote, MapPin, Type } from 'lucide-react';
 import { CountdownTimer } from './components/CountdownTimer';
@@ -250,6 +251,7 @@ const App: React.FC = () => {
             <GiftCardLedger 
               projectedTripCost={projectedTripCost} 
               onUpdateProjectedCost={() => {}} 
+              expenses={expenses}
             />
           )}
           {activeTab === 'packing' && <PackingChecklist />}
