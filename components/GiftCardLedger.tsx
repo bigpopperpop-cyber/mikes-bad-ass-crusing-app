@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { GiftCard, CashEntry } from '../types';
-import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck } from 'lucide-react';
+import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2 } from 'lucide-react';
 
 interface Props {
   projectedTripCost: number;
@@ -43,7 +43,11 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
   }, [cashEntries]);
 
   const stats = useMemo(() => {
-    const giftCardAvailable = cards.reduce((sum, card) => sum + card.currentBalance, 0);
+    // Only sum current balance for cards that ARE NOT completed
+    const giftCardAvailable = cards.reduce((sum, card) => {
+      return card.dateCompleted ? sum : sum + card.currentBalance;
+    }, 0);
+    
     const cashTotal = cashEntries.reduce((sum, entry) => sum + entry.amount, 0);
     const totalSaved = giftCardAvailable + cashTotal;
     const remainingGoal = Math.max(0, projectedTripCost - totalSaved);
@@ -57,6 +61,21 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
     if (newSet.has(id)) newSet.delete(id);
     else newSet.add(id);
     setRevealedCardIds(newSet);
+  };
+
+  const toggleComplete = (id: string) => {
+    setCards(cards.map(card => {
+      if (card.id === id) {
+        return {
+          ...card,
+          dateCompleted: card.dateCompleted ? undefined : new Date().toISOString(),
+          // If marking complete, it's often useful to set current balance to 0, 
+          // but we'll leave the balance as is and just ignore it in totals 
+          // to preserve the "final state" of the card.
+        };
+      }
+      return card;
+    }));
   };
 
   const copyToClipboard = (text: string, id: string, type: 'number' | 'code') => {
@@ -145,7 +164,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
       {/* Financial Summary Dashboard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { icon: CreditCard, color: 'blue', label: 'Gift Cards', value: stats.giftCardAvailable },
+          { icon: CreditCard, color: 'blue', label: 'Active Gift Cards', value: stats.giftCardAvailable },
           { icon: Banknote, color: 'emerald', label: 'Cash Savings', value: stats.cashTotal },
           { icon: Wallet, color: 'purple', label: 'Total Funds', value: stats.totalSaved },
         ].map((item, idx) => (
@@ -200,7 +219,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
             </button>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border-2 border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-[2.5rem] border-2 border-slate-200 shadow-sm">
             <div className="divide-y divide-slate-100">
               {cards.length === 0 ? (
                 <div className="p-16 text-center text-slate-400 font-bold italic opacity-60">
@@ -212,19 +231,52 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                   const revealed = revealedCardIds.has(card.id);
                   const isNumberCopied = copyFeedback === `${card.id}-number`;
                   const isCodeCopied = copyFeedback === `${card.id}-code`;
+                  const isCompleted = !!card.dateCompleted;
 
                   return (
-                    <div key={card.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between transition-colors active:bg-slate-50 relative group">
-                      <div className="flex items-start gap-5 mb-5 sm:mb-0">
-                        <div className="bg-slate-50 p-4 rounded-[1.25rem] text-slate-400 border border-slate-100 shrink-0">
-                          <CreditCard className="w-6 h-6" />
+                    <div 
+                      key={card.id} 
+                      className={`p-6 flex flex-col sm:flex-row sm:items-center justify-between transition-all relative group ${isCompleted ? 'bg-emerald-50/50 opacity-75' : 'hover:bg-slate-50'}`}
+                    >
+                      
+                      {/* Action buttons */}
+                      <div className="absolute top-4 right-4 flex items-center gap-1 sm:static sm:order-last">
+                        <button 
+                          onClick={() => toggleComplete(card.id)}
+                          className={`p-3 rounded-xl transition-all active-scale ${isCompleted ? 'text-emerald-600 bg-emerald-100' : 'text-slate-300 hover:text-emerald-600 hover:bg-emerald-50'}`}
+                          title={isCompleted ? "Mark as Active" : "Mark as Fully Used"}
+                        >
+                          <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                        </button>
+                        <button 
+                          onClick={() => startEditing(card)} 
+                          className="p-3 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active-scale"
+                          title="Edit full card details"
+                        >
+                          <Edit2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                        </button>
+                        <button 
+                          onClick={() => removeCard(card.id)} 
+                          className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
+                          title="Remove Card"
+                        >
+                          <Trash2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-start gap-4 sm:gap-5 mb-5 sm:mb-0 max-w-[85%] sm:max-w-none">
+                        <div className={`p-3 sm:p-4 rounded-[1.25rem] border shrink-0 transition-colors ${isCompleted ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                          {isCompleted ? <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /> : <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-black text-slate-900 text-xl leading-none">{card.source}</p>
+                          <div className="flex items-center gap-2">
+                            <p className={`font-black text-lg sm:text-xl leading-none truncate ${isCompleted ? 'text-emerald-900 line-through decoration-emerald-300' : 'text-slate-900'}`}>{card.source}</p>
+                            {isCompleted && <span className="text-[8px] font-black bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Spent</span>}
+                          </div>
                           <div className="flex items-center gap-2 mt-2 group/num relative">
                             <button 
                               onClick={() => copyToClipboard(card.cardNumber, card.id, 'number')}
-                              className={`text-[13px] font-mono font-bold uppercase tracking-wider px-2 py-1 -ml-2 rounded-lg transition-all text-left flex items-center gap-2 ${isNumberCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'}`}
+                              className={`text-[12px] sm:text-[13px] font-mono font-bold uppercase tracking-wider px-2 py-1 -ml-2 rounded-lg transition-all text-left flex items-center gap-2 ${isNumberCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'}`}
                               title="Click to copy card number"
                             >
                               {formatCardNumber(card.cardNumber, revealed)}
@@ -242,7 +294,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                             <div className="flex items-center gap-2 mt-1">
                                <button 
                                  onClick={() => copyToClipboard(card.accessCode, card.id, 'code')}
-                                 className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 -ml-2 rounded flex items-center gap-1.5 transition-all ${isCodeCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-300 hover:bg-slate-100 hover:text-slate-500'}`}
+                                 className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 -ml-2 rounded flex items-center gap-1.5 transition-all ${isCodeCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-300 hover:bg-slate-100 hover:text-slate-500'}`}
                                  title="Click to copy Access Code"
                                >
                                  Access Code: {revealed ? card.accessCode : '••••'}
@@ -253,32 +305,19 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         </div>
                       </div>
                       
-                      <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-10 border-t border-slate-50 pt-5 sm:pt-0 sm:border-0">
-                        <div className="text-right">
+                      <div className="flex items-center justify-start sm:justify-end gap-6 sm:gap-10 border-t border-slate-50 pt-5 sm:pt-0 sm:border-0 sm:mr-4">
+                        <div className="text-left sm:text-right">
                           <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Initial</p>
-                          <p className="font-bold text-slate-400 tabular-nums">${card.originalBalance.toFixed(2)}</p>
+                          <p className="font-bold text-slate-400 tabular-nums text-sm sm:text-base">${card.originalBalance.toFixed(2)}</p>
                         </div>
 
-                        <div className="text-right min-w-[120px]">
-                          <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Current</p>
-                          <p className="font-black text-slate-900 text-2xl tabular-nums tracking-tight">${card.currentBalance.toFixed(2)}</p>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <button 
-                            onClick={() => startEditing(card)} 
-                            className="p-3 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active-scale"
-                            title="Edit full card details"
-                          >
-                            <Edit2 className="w-6 h-6" />
-                          </button>
-                          <button 
-                            onClick={() => removeCard(card.id)} 
-                            className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
-                            title="Remove Card"
-                          >
-                            <Trash2 className="w-6 h-6" />
-                          </button>
+                        <div className="text-left sm:text-right min-w-[100px] sm:min-w-[120px]">
+                          <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCompleted ? 'text-emerald-500' : 'text-blue-600'}`}>
+                            {isCompleted ? 'Spent At' : 'Current'}
+                          </p>
+                          <p className={`font-black text-xl sm:text-2xl tabular-nums tracking-tight ${isCompleted ? 'text-emerald-700' : 'text-slate-900'}`}>
+                            ${card.currentBalance.toFixed(2)}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -314,7 +353,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                 </div>
               ) : (
                 cashEntries.map(entry => (
-                  <div key={entry.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors active:bg-slate-100 group">
+                  <div key={entry.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors active:bg-slate-100 group relative">
                     <div className="flex items-center gap-5">
                       <div className="bg-emerald-50 p-4 rounded-[1.25rem] text-emerald-600 border border-emerald-100">
                         <Banknote className="w-6 h-6" />
@@ -327,17 +366,17 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-8">
-                      <div className="text-right">
+                    <div className="flex items-center gap-4 sm:gap-8">
+                      <div className="text-right mr-10 sm:mr-0">
                         <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">SAVED</p>
-                        <p className="text-2xl font-black text-slate-900 tabular-nums tracking-tight">${entry.amount.toFixed(2)}</p>
+                        <p className="text-xl sm:text-2xl font-black text-slate-900 tabular-nums tracking-tight">${entry.amount.toFixed(2)}</p>
                       </div>
                       <button 
                         onClick={() => removeCashEntry(entry.id)} 
-                        className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 sm:static sm:translate-y-0 p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
                         aria-label="Remove Cash"
                       >
-                        <Trash2 className="w-6 h-6" />
+                        <Trash2 className="w-5 h-5 sm:w-6 sm:h-6" />
                       </button>
                     </div>
                   </div>
