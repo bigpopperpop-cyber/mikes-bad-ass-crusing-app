@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { GiftCard, CashEntry } from '../types';
-import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy } from 'lucide-react';
+import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck } from 'lucide-react';
 
 interface Props {
   projectedTripCost: number;
@@ -22,10 +22,10 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [isAddingCash, setIsAddingCash] = useState(false);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState<string>('');
   const [revealedCardIds, setRevealedCardIds] = useState<Set<string>>(new Set());
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null); // To show "Copied!" for a specific ID
   
-  const [newCard, setNewCard] = useState<Partial<GiftCard>>({
+  const [cardFormData, setCardFormData] = useState<Partial<GiftCard>>({
     cardNumber: '', pin: '', originalBalance: 0, currentBalance: 0, source: '',
     dateReceived: new Date().toISOString().split('T')[0]
   });
@@ -59,33 +59,54 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
     setRevealedCardIds(newSet);
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, id: string, type: 'number' | 'pin') => {
     navigator.clipboard.writeText(text);
-    // Optional: Add a toast notification here
+    const feedbackKey = `${id}-${type}`;
+    setCopyFeedback(feedbackKey);
+    setTimeout(() => setCopyFeedback(null), 2000);
   };
 
-  const handleAddCard = (e: React.FormEvent) => {
+  const handleSaveCard = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newCard.cardNumber && newCard.source) {
-      const card: GiftCard = {
-        id: Math.random().toString(36).substr(2, 9),
-        cardNumber: newCard.cardNumber || '',
-        pin: newCard.pin || '',
-        originalBalance: Number(newCard.originalBalance) || 0,
-        currentBalance: Number(newCard.currentBalance) || 0,
-        source: newCard.source || '',
-        dateReceived: newCard.dateReceived || '',
-      };
-      setCards([...cards, card]);
+    if (cardFormData.cardNumber && cardFormData.source) {
+      if (editingCardId) {
+        // Update existing card
+        setCards(cards.map(c => c.id === editingCardId ? { ...c, ...cardFormData } as GiftCard : c));
+        setEditingCardId(null);
+      } else {
+        // Add new card
+        const card: GiftCard = {
+          id: Math.random().toString(36).substr(2, 9),
+          cardNumber: cardFormData.cardNumber || '',
+          pin: cardFormData.pin || '',
+          originalBalance: Number(cardFormData.originalBalance) || 0,
+          currentBalance: Number(cardFormData.currentBalance) || 0,
+          source: cardFormData.source || '',
+          dateReceived: cardFormData.dateReceived || '',
+        };
+        setCards([...cards, card]);
+      }
       setIsAddingCard(false);
-      setNewCard({ cardNumber: '', pin: '', originalBalance: 0, currentBalance: 0, source: '', dateReceived: new Date().toISOString().split('T')[0] });
+      resetCardForm();
     }
+  };
+
+  const resetCardForm = () => {
+    setCardFormData({ 
+      cardNumber: '', pin: '', originalBalance: 0, currentBalance: 0, source: '', 
+      dateReceived: new Date().toISOString().split('T')[0] 
+    });
+  };
+
+  const startEditing = (card: GiftCard) => {
+    setCardFormData({ ...card });
+    setEditingCardId(card.id);
+    setIsAddingCard(true);
   };
 
   const removeCard = (id: string) => {
     if (window.confirm('Are you sure you want to remove this gift card? This action cannot be undone.')) {
       setCards(cards.filter(c => c.id !== id));
-      // Remove from revealed IDs if present
       const newSet = new Set(revealedCardIds);
       newSet.delete(id);
       setRevealedCardIds(newSet);
@@ -96,18 +117,6 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
     if (window.confirm('Are you sure you want to delete this cash entry?')) {
       setCashEntries(cashEntries.filter(e => e.id !== id));
     }
-  };
-
-  const startEditing = (card: GiftCard) => {
-    setEditingCardId(card.id);
-    setEditValue(card.currentBalance.toString());
-  };
-
-  const saveEdit = (id: string) => {
-    const val = parseFloat(editValue);
-    if (isNaN(val)) return;
-    setCards(cards.map(c => c.id === id ? { ...c, currentBalance: val } : c));
-    setEditingCardId(null);
   };
 
   const handleAddCash = (e: React.FormEvent) => {
@@ -138,11 +147,11 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
       {/* Financial Summary Dashboard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { icon: CreditCard, color: 'blue', label: 'Gift Cards', value: stats.giftCardAvailable, sub: 'Available' },
-          { icon: Banknote, color: 'emerald', label: 'Cash Savings', value: stats.cashTotal, sub: 'Total In Hand' },
-          { icon: Wallet, color: 'purple', label: 'Total Funds', value: stats.totalSaved, sub: 'Combined' },
+          { icon: CreditCard, color: 'blue', label: 'Gift Cards', value: stats.giftCardAvailable },
+          { icon: Banknote, color: 'emerald', label: 'Cash Savings', value: stats.cashTotal },
+          { icon: Wallet, color: 'purple', label: 'Total Funds', value: stats.totalSaved },
         ].map((item, idx) => (
-          <div key={idx} className="bg-white p-5 sm:p-7 rounded-[2rem] border-2 border-slate-200 shadow-sm relative overflow-hidden active-scale">
+          <div key={idx} className="bg-white p-5 sm:p-7 rounded-[2rem] border-2 border-slate-200 shadow-sm relative overflow-hidden">
             <div className={`bg-${item.color}-100 w-12 h-12 rounded-2xl flex items-center justify-center mb-5`}>
               <item.icon className={`w-6 h-6 text-${item.color}-600`} />
             </div>
@@ -185,7 +194,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
               Gift Cards
             </h3>
             <button 
-              onClick={() => setIsAddingCard(true)}
+              onClick={() => { resetCardForm(); setEditingCardId(null); setIsAddingCard(true); }}
               className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white font-black rounded-2xl active-scale shadow-lg shadow-blue-900/10 text-sm tracking-wide"
             >
               <Plus className="w-4 h-4" />
@@ -203,6 +212,9 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
               ) : (
                 cards.map(card => {
                   const revealed = revealedCardIds.has(card.id);
+                  const isNumberCopied = copyFeedback === `${card.id}-number`;
+                  const isPinCopied = copyFeedback === `${card.id}-pin`;
+
                   return (
                     <div key={card.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between transition-colors active:bg-slate-50 relative group">
                       <div className="flex items-start gap-5 mb-5 sm:mb-0">
@@ -211,31 +223,34 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         </div>
                         <div className="min-w-0">
                           <p className="font-black text-slate-900 text-xl leading-none">{card.source}</p>
-                          <div className="flex items-center gap-2 mt-2 group/num">
-                            <p className="text-[13px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-                              {formatCardNumber(card.cardNumber, revealed)}
-                            </p>
+                          <div className="flex items-center gap-2 mt-2 group/num relative">
                             <button 
-                              onClick={() => toggleReveal(card.id)}
-                              className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 transition-colors"
+                              onClick={() => copyToClipboard(card.cardNumber, card.id, 'number')}
+                              className={`text-[13px] font-mono font-bold uppercase tracking-wider px-2 py-1 -ml-2 rounded-lg transition-all text-left flex items-center gap-2 ${isNumberCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'}`}
+                              title="Click to copy card number"
+                            >
+                              {formatCardNumber(card.cardNumber, revealed)}
+                              {isNumberCopied ? <ClipboardCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 opacity-0 group-hover/num:opacity-100" />}
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); toggleReveal(card.id); }}
+                              className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 transition-colors shrink-0"
                               title={revealed ? "Hide number" : "Show number"}
                             >
                               {revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>
-                            {revealed && (
-                              <button 
-                                onClick={() => copyToClipboard(card.cardNumber)}
-                                className="p-1.5 hover:bg-slate-100 rounded-md text-blue-500 transition-colors"
-                                title="Copy number"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </button>
-                            )}
                           </div>
                           {card.pin && (
-                             <p className="text-[10px] font-black text-slate-300 mt-1 uppercase tracking-widest">
-                               PIN: {revealed ? card.pin : '••••'}
-                             </p>
+                            <div className="flex items-center gap-2 mt-1">
+                               <button 
+                                 onClick={() => copyToClipboard(card.pin, card.id, 'pin')}
+                                 className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 -ml-2 rounded flex items-center gap-1.5 transition-all ${isPinCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-300 hover:bg-slate-100 hover:text-slate-500'}`}
+                                 title="Click to copy PIN"
+                               >
+                                 PIN: {revealed ? card.pin : '••••'}
+                                 {isPinCopied && <Check className="w-3 h-3" />}
+                               </button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -248,41 +263,25 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
 
                         <div className="text-right min-w-[120px]">
                           <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Current</p>
-                          {editingCardId === card.id ? (
-                            <div className="flex items-center gap-2">
-                              <input 
-                                autoFocus
-                                type="number"
-                                step="0.01"
-                                className="w-28 bg-blue-50 border-2 border-blue-500 rounded-xl px-3 py-2 text-right font-black text-slate-900 outline-none text-lg"
-                                value={editValue}
-                                onChange={e => setEditValue(e.target.value)}
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter') saveEdit(card.id);
-                                  if (e.key === 'Escape') setEditingCardId(null);
-                                }}
-                              />
-                              <button onClick={() => saveEdit(card.id)} className="p-2 bg-emerald-500 text-white rounded-xl active-scale">
-                                <Check className="w-5 h-5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-end gap-3 cursor-pointer group/edit" onClick={() => startEditing(card)}>
-                              <p className="font-black text-slate-900 text-2xl tabular-nums tracking-tight">${card.currentBalance.toFixed(2)}</p>
-                              <div className="p-2 bg-slate-50 rounded-lg group-active/edit:bg-blue-100 transition-colors">
-                                <Edit2 className="w-4 h-4 text-slate-400" />
-                              </div>
-                            </div>
-                          )}
+                          <p className="font-black text-slate-900 text-2xl tabular-nums tracking-tight">${card.currentBalance.toFixed(2)}</p>
                         </div>
 
-                        <button 
-                          onClick={() => removeCard(card.id)} 
-                          className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
-                          aria-label="Remove Card"
-                        >
-                          <Trash2 className="w-6 h-6" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => startEditing(card)} 
+                            className="p-3 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active-scale"
+                            title="Edit full card details"
+                          >
+                            <Edit2 className="w-6 h-6" />
+                          </button>
+                          <button 
+                            onClick={() => removeCard(card.id)} 
+                            className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
+                            title="Remove Card"
+                          >
+                            <Trash2 className="w-6 h-6" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -353,7 +352,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
 
       {/* Modern Modals */}
       {(isAddingCard || isAddingCash) && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-300">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-300" onClick={() => { setIsAddingCard(false); setIsAddingCash(false); }}>
           <div 
             className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 sm:p-12 max-w-xl w-full shadow-2xl safe-pb animate-in slide-in-from-bottom-8 duration-500"
             onClick={e => e.stopPropagation()}
@@ -362,10 +361,10 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
               <>
                 <div className="flex items-center gap-4 mb-2">
                   <div className="bg-blue-600 p-2.5 rounded-2xl"><CreditCard className="w-7 h-7 text-white" /></div>
-                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">Register Card</h3>
+                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">{editingCardId ? 'Edit Card' : 'Register Card'}</h3>
                 </div>
-                <p className="text-slate-400 font-bold mb-10">Safe and secure local storage only.</p>
-                <form onSubmit={handleAddCard} className="space-y-6">
+                <p className="text-slate-400 font-bold mb-10">Updating full details for local storage.</p>
+                <form onSubmit={handleSaveCard} className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="sm:col-span-2">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Vendor / Source</label>
@@ -373,8 +372,8 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         autoFocus
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg"
                         placeholder="e.g. AARP, Amazon, Sam's Club"
-                        value={newCard.source}
-                        onChange={e => setNewCard({...newCard, source: e.target.value})}
+                        value={cardFormData.source}
+                        onChange={e => setCardFormData({...cardFormData, source: e.target.value})}
                         required
                       />
                     </div>
@@ -385,51 +384,50 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         inputMode="numeric"
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg tracking-widest font-mono"
                         placeholder="Enter all digits"
-                        value={newCard.cardNumber}
-                        onChange={e => setNewCard({...newCard, cardNumber: e.target.value.replace(/\D/g, '')})}
+                        value={cardFormData.cardNumber}
+                        onChange={e => setCardFormData({...cardFormData, cardNumber: e.target.value.replace(/\D/g, '')})}
                         required
                       />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Security PIN</label>
                       <input 
-                        type="password"
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg"
+                        type="text"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg font-mono"
                         placeholder="Optional"
-                        value={newCard.pin}
-                        onChange={e => setNewCard({...newCard, pin: e.target.value})}
+                        value={cardFormData.pin}
+                        onChange={e => setCardFormData({...cardFormData, pin: e.target.value})}
                       />
                     </div>
                     <div className="hidden sm:block"></div>
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Original $</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Original Balance ($)</label>
                       <input 
                         type="number" step="0.01"
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-black transition-all text-lg"
                         placeholder="0.00"
-                        value={newCard.originalBalance || ''}
-                        onChange={e => {
-                          const val = parseFloat(e.target.value);
-                          setNewCard({...newCard, originalBalance: val, currentBalance: val});
-                        }}
+                        value={cardFormData.originalBalance || ''}
+                        onChange={e => setCardFormData({...cardFormData, originalBalance: parseFloat(e.target.value) || 0})}
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Current $</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Current Balance ($)</label>
                       <input 
                         type="number" step="0.01"
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-black transition-all text-lg"
                         placeholder="0.00"
-                        value={newCard.currentBalance || ''}
-                        onChange={e => setNewCard({...newCard, currentBalance: parseFloat(e.target.value)})}
+                        value={cardFormData.currentBalance || ''}
+                        onChange={e => setCardFormData({...cardFormData, currentBalance: parseFloat(e.target.value) || 0})}
                         required
                       />
                     </div>
                   </div>
                   <div className="flex gap-4 pt-6">
                     <button type="button" onClick={() => setIsAddingCard(false)} className="flex-1 bg-slate-100 py-5 rounded-[1.5rem] font-black text-slate-500 active-scale">Cancel</button>
-                    <button type="submit" className="flex-1 bg-blue-600 py-5 rounded-[1.5rem] font-black text-white shadow-2xl shadow-blue-900/20 active-scale">Save Card</button>
+                    <button type="submit" className="flex-1 bg-blue-600 py-5 rounded-[1.5rem] font-black text-white shadow-2xl shadow-blue-900/20 active-scale">
+                      {editingCardId ? 'Update Card' : 'Save Card'}
+                    </button>
                   </div>
                 </form>
               </>
@@ -460,7 +458,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-emerald-500 font-black transition-all text-xl"
                         placeholder="0.00"
                         value={newCash.amount || ''}
-                        onChange={e => setNewCash({...newCash, amount: parseFloat(e.target.value)})}
+                        onChange={e => setNewCash({...newCash, amount: parseFloat(e.target.value) || 0})}
                         required
                       />
                     </div>
