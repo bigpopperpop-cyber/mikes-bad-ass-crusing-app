@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { CountdownState } from '../types';
+import type { CountdownState } from '../types';
 
 export const CountdownTimer: React.FC = () => {
   const targetDate = new Date('2028-07-01T00:00:00').getTime();
@@ -31,15 +31,13 @@ export const CountdownTimer: React.FC = () => {
 
   return (
     <div className="bg-slate-900 rounded-2xl p-8 text-white shadow-2xl overflow-hidden relative group">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-20 -mt-20 blur-3xl group-hover:bg-blue-600/20 transition-all duration-700"></div>
-      
+      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-20 -mt-20 blur-3xl transition-all"></div>
       <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
         <div>
           <h4 className="text-blue-400 font-bold uppercase tracking-widest text-xs mb-2">Upcoming Milestone</h4>
           <h2 className="text-3xl font-black">High School Graduation Trip</h2>
           <p className="text-slate-400 mt-1 text-sm font-medium">Bon Voyage: July 1st, 2028</p>
         </div>
-
         <div className="grid grid-cols-4 gap-4 md:gap-8">
           {[
             { label: 'Days', value: timeLeft.days },
