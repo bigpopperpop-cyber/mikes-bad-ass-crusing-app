@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { Download, Upload, Copy, Check, AlertCircle, RefreshCw, FileJson, Link, ShieldAlert } from 'lucide-react';
 
@@ -14,7 +13,7 @@ export const DataManagement: React.FC = () => {
       cruise_gift_cards: localStorage.getItem('cruise_gift_cards'),
       cruise_packing_items: localStorage.getItem('cruise_packing_items'),
       cruise_expenses: localStorage.getItem('cruise_expenses'),
-      version: '1.3',
+      version: '1.4',
       timestamp: new Date().toISOString()
     };
   };
@@ -33,11 +32,17 @@ export const DataManagement: React.FC = () => {
   };
 
   const handleCopyDataString = () => {
-    const data = getAllData();
-    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-    navigator.clipboard.writeText(encoded);
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 2000);
+    try {
+      const data = getAllData();
+      const jsonString = JSON.stringify(data);
+      // Use a more robust encoding for characters
+      const encoded = btoa(encodeURIComponent(jsonString));
+      navigator.clipboard.writeText(encoded);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      setImportError('Failed to generate data string.');
+    }
   };
 
   const processImport = (json: any) => {
@@ -48,7 +53,7 @@ export const DataManagement: React.FC = () => {
       if (json.cruise_packing_items) localStorage.setItem('cruise_packing_items', json.cruise_packing_items);
       if (json.cruise_expenses) localStorage.setItem('cruise_expenses', json.cruise_expenses);
       
-      alert('Data imported successfully! The page will now reload to apply changes.');
+      alert('Data imported successfully! The page will now reload.');
       window.location.reload();
     } catch (err) {
       setImportError('Invalid data format. Please check your backup file or string.');
@@ -79,6 +84,7 @@ export const DataManagement: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Backup Section */}
         <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-200 shadow-sm hover:border-blue-500/50 transition-colors flex flex-col">
           <div className="bg-blue-50 w-16 h-16 rounded-3xl flex items-center justify-center mb-6">
             <Download className="text-blue-600 w-8 h-8" />
@@ -90,14 +96,14 @@ export const DataManagement: React.FC = () => {
           <div className="space-y-3">
             <button 
               onClick={handleExportFile}
-              className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white font-bold py-5 rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white font-bold py-5 rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
             >
               <FileJson className="w-5 h-5" />
               Download Backup File
             </button>
             <button 
               onClick={handleCopyDataString}
-              className="w-full flex items-center justify-center gap-2 bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-all active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-all"
             >
               {copySuccess ? <Check className="w-5 h-5 text-emerald-500" /> : <Link className="w-5 h-5" />}
               {copySuccess ? 'Copied to Clipboard' : 'Copy Data String'}
@@ -105,6 +111,7 @@ export const DataManagement: React.FC = () => {
           </div>
         </div>
 
+        {/* Import Section */}
         <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-200 shadow-sm hover:border-purple-500/50 transition-colors flex flex-col">
           <div className="bg-purple-50 w-16 h-16 rounded-3xl flex items-center justify-center mb-6">
             <Upload className="text-purple-600 w-8 h-8" />
@@ -123,7 +130,7 @@ export const DataManagement: React.FC = () => {
             />
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="w-full flex items-center justify-center gap-2 bg-purple-600 text-white font-bold py-5 rounded-2xl hover:bg-purple-700 transition-all shadow-xl shadow-purple-200 active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 bg-purple-600 text-white font-bold py-5 rounded-2xl hover:bg-purple-700 transition-all shadow-xl shadow-purple-200"
             >
               <Upload className="w-5 h-5" />
               Upload Backup File
@@ -133,14 +140,15 @@ export const DataManagement: React.FC = () => {
                 const str = prompt('Paste your encoded data string here:');
                 if (str) {
                   try {
-                    const json = JSON.parse(decodeURIComponent(escape(atob(str))));
+                    const decoded = decodeURIComponent(atob(str));
+                    const json = JSON.parse(decoded);
                     processImport(json);
                   } catch (e) {
                     alert('Invalid data string.');
                   }
                 }
               }}
-              className="w-full flex items-center justify-center gap-2 bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-all active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-all"
             >
               <RefreshCw className="w-5 h-5" />
               Paste Data String
@@ -156,12 +164,23 @@ export const DataManagement: React.FC = () => {
         </div>
       )}
 
+      {/* Security Info Card */}
       <div className="bg-slate-900 text-white p-10 rounded-[3rem] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
-        <div className="relative z-10 flex items-start gap-6">
-          <div className="bg-orange-500/20 p-4 rounded-2xl">
+        <div className="relative z-10 flex flex-col md:flex-row items-start gap-6">
+          <div className="bg-orange-500/20 p-4 rounded-2xl shrink-0">
             <ShieldAlert className="w-8 h-8 text-orange-400" />
           </div>
           <div>
             <h4 className="text-xl font-black mb-3">Data Security & Privacy</h4>
-            
+            <p className="text-slate-400 text-sm leading-relaxed font-medium">
+              Everything you enter—gift card numbers, PINs, budget items, and packing lists—is stored <strong>locally in your browser</strong>. 
+              We never upload this sensitive data to a server. This means you are responsible for your own backups. 
+              If you clear your browser history or data, your cruise plans will be lost unless you have a backup file saved or a data string copied.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
