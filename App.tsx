@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { Ship, Calendar, Package, Wallet, Menu, X, Plus, Info } from 'lucide-react';
-import { CountdownTimer } from './components/CountdownTimer';
-import { GiftCardLedger } from './components/GiftCardLedger';
-import { PackingChecklist } from './components/PackingChecklist';
-import { AIAssistant } from './components/AIAssistant';
+import React, { useState } from 'react';
+import { Ship, Calendar, Package, Wallet, Menu, X } from 'lucide-react';
+import { CountdownTimer } from './components/CountdownTimer.tsx';
+import { GiftCardLedger } from './components/GiftCardLedger.tsx';
+import { PackingChecklist } from './components/PackingChecklist.tsx';
+import { AIAssistant } from './components/AIAssistant.tsx';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ledger' | 'packing'>('dashboard');
@@ -86,7 +86,7 @@ const App: React.FC = () => {
                       <div className="bg-emerald-100 p-2 rounded-lg"><Wallet className="w-4 h-4 text-emerald-600" /></div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase">Trip Fund</p>
-                        <p className="text-sm font-bold text-slate-900 tracking-tight">$0.00</p>
+                        <p className="text-sm font-bold text-slate-900 tracking-tight">Active Plan</p>
                       </div>
                    </div>
                 </div>
