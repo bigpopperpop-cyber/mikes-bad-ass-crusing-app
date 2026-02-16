@@ -17,12 +17,23 @@ const App: React.FC = () => {
     return saved || '2028-07-01';
   });
 
+  // Persistence for projected trip cost
+  const [projectedTripCost, setProjectedTripCost] = useState<number>(() => {
+    const saved = localStorage.getItem('cruise_projected_cost');
+    return saved ? parseFloat(saved) : 5000;
+  });
+
   const [tempDate, setTempDate] = useState(departureDate);
 
   const saveTripSettings = () => {
     setDepartureDate(tempDate);
     localStorage.setItem('cruise_departure_date', tempDate);
     setIsEditingTrip(false);
+  };
+
+  const handleUpdateProjectedCost = (newCost: number) => {
+    setProjectedTripCost(newCost);
+    localStorage.setItem('cruise_projected_cost', newCost.toString());
   };
 
   return (
@@ -135,7 +146,12 @@ const App: React.FC = () => {
               </div>
             </>
           )}
-          {activeTab === 'ledger' && <GiftCardLedger />}
+          {activeTab === 'ledger' && (
+            <GiftCardLedger 
+              projectedTripCost={projectedTripCost} 
+              onUpdateProjectedCost={handleUpdateProjectedCost} 
+            />
+          )}
           {activeTab === 'packing' && <PackingChecklist />}
         </div>
       </main>

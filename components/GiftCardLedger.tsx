@@ -1,11 +1,20 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { GiftCard } from '../types';
-import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt } from 'lucide-react';
 
-export const GiftCardLedger: React.FC = () => {
-  const [cards, setCards] = useState<GiftCard[]>([]);
+interface Props {
+  projectedTripCost: number;
+  onUpdateProjectedCost: (cost: number) => void;
+}
+
+export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, onUpdateProjectedCost }) => {
+  const [cards, setCards] = useState<GiftCard[]>(() => {
+    const saved = localStorage.getItem('cruise_gift_cards');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [isAdding, setIsAdding] = useState(false);
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [newCard, setNewCard] = useState<Partial<GiftCard>>({
     cardNumber: '',
     pin: '',
@@ -16,9 +25,19 @@ export const GiftCardLedger: React.FC = () => {
     dateCompleted: '',
   });
 
-  const totalFund = useMemo(() => {
-    return cards.reduce((sum, card) => sum + card.currentBalance, 0);
+  useEffect(() => {
+    localStorage.setItem('cruise_gift_cards', JSON.stringify(cards));
   }, [cards]);
+
+  const stats = useMemo(() => {
+    const totalAvailable = cards.reduce((sum, card) => sum + card.currentBalance, 0);
+    const totalOriginal = cards.reduce((sum, card) => sum + card.originalBalance, 0);
+    const totalSpent = totalOriginal - totalAvailable;
+    const remainingGoal = Math.max(0, projectedTripCost - totalAvailable);
+    const progressPercent = Math.min(100, (totalAvailable / projectedTripCost) * 100);
+
+    return { totalAvailable, totalSpent, remainingGoal, progressPercent };
+  }, [cards, projectedTripCost]);
 
   const handleAddCard = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,40 +67,120 @@ export const GiftCardLedger: React.FC = () => {
   };
 
   const removeCard = (id: string) => {
-    setCards(cards.filter(c => c.id !== id));
+    if (confirm('Remove this card from the ledger?')) {
+      setCards(cards.filter(c => c.id !== id));
+    }
   };
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-blue-100 p-2 rounded-lg"><Wallet className="w-5 h-5 text-blue-600" /></div>
-            <h3 className="font-bold text-slate-800">Total Fund</h3>
+      {/* Financial Summary Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Wallet className="w-16 h-16" />
           </div>
-          <p className="text-4xl font-black text-slate-900 tabular-nums">
-            ${totalFund.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-blue-100 p-2 rounded-lg"><TrendingUp className="w-5 h-5 text-blue-600" /></div>
+            <h3 className="font-bold text-slate-800">Total Available</h3>
+          </div>
+          <p className="text-3xl font-black text-slate-900 tabular-nums">
+            ${stats.totalAvailable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
-          <p className="text-xs text-slate-400 mt-2 font-semibold">Consolidated Gift Card Balance</p>
+          <p className="text-xs text-slate-400 mt-2 font-semibold uppercase tracking-wider">Ready to spend</p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-indigo-100 p-2 rounded-lg"><CreditCard className="w-5 h-5 text-indigo-600" /></div>
-            <h3 className="font-bold text-slate-800">Active Cards</h3>
+        <div className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Receipt className="w-16 h-16" />
           </div>
-          <p className="text-4xl font-black text-slate-900 tabular-nums">{cards.filter(c => !c.dateCompleted).length}</p>
-          <p className="text-xs text-slate-400 mt-2 font-semibold">Pending Assets</p>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-orange-100 p-2 rounded-lg"><DollarSign className="w-5 h-5 text-orange-600" /></div>
+            <h3 className="font-bold text-slate-800">Total Spent</h3>
+          </div>
+          <p className="text-3xl font-black text-slate-900 tabular-nums">
+            ${stats.totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p className="text-xs text-slate-400 mt-2 font-semibold uppercase tracking-wider">Applied to trip</p>
         </div>
 
+        <div className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Target className="w-16 h-16" />
+          </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-purple-100 p-2 rounded-lg"><Target className="w-5 h-5 text-purple-600" /></div>
+            <h3 className="font-bold text-slate-800">Goal Gap</h3>
+          </div>
+          <p className="text-3xl font-black text-slate-900 tabular-nums">
+            ${stats.remainingGoal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p className="text-xs text-slate-400 mt-2 font-semibold uppercase tracking-wider">Remaining for trip</p>
+        </div>
+
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-bold text-slate-400 text-sm uppercase tracking-widest">Savings Progress</h3>
+              <button 
+                onClick={() => setIsEditingGoal(true)}
+                className="text-blue-400 text-[10px] font-black uppercase hover:text-blue-300 transition-colors"
+              >
+                Edit Target
+              </button>
+            </div>
+            <div className="flex items-end gap-2 mb-2">
+              <p className="text-3xl font-black text-white">{Math.round(stats.progressPercent)}%</p>
+              <p className="text-xs text-slate-500 mb-1 font-bold">of ${projectedTripCost.toLocaleString()}</p>
+            </div>
+            <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-blue-500 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]" 
+                style={{ width: `${stats.progressPercent}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Goal Editor Modal */}
+      {isEditingGoal && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+            <h3 className="text-xl font-black text-slate-900 mb-6">Update Trip Budget</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Projected Trip Cost</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input 
+                    type="number"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl pl-10 pr-4 py-4 focus:border-blue-500 outline-none transition-all font-black text-2xl"
+                    value={projectedTripCost}
+                    onChange={(e) => onUpdateProjectedCost(parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsEditingGoal(false)}
+                className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all"
+              >
+                Save Target Cost
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Card Button & Main List */}
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-black text-slate-900">Card Inventory</h3>
         <button 
           onClick={() => setIsAdding(true)}
-          className="bg-blue-600 p-6 rounded-2xl shadow-lg hover:bg-blue-700 transition-colors flex flex-col items-center justify-center text-white group"
+          className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all group"
         >
-          <div className="bg-white/20 p-3 rounded-full mb-3 group-hover:scale-110 transition-transform">
-            <Plus className="w-6 h-6" />
-          </div>
-          <span className="font-bold uppercase tracking-wider text-sm">Add New Gift Card</span>
+          <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+          <span className="font-bold uppercase tracking-wider text-xs">Register Card</span>
         </button>
       </div>
 
