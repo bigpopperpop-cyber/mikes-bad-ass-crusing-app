@@ -67,6 +67,12 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
     localStorage.setItem('cruise_credit_entries', JSON.stringify(creditEntries));
   }, [creditEntries]);
 
+  // Extract unique vendor names for autocomplete
+  const rememberedVendors = useMemo(() => {
+    const vendors = cards.map(c => c.source.trim()).filter(v => v !== '');
+    return Array.from(new Set(vendors)).sort();
+  }, [cards]);
+
   const stats = useMemo(() => {
     const activeGiftCardCurrentBalance = cards.reduce((sum, card) => {
       return card.dateCompleted ? sum : sum + card.currentBalance;
@@ -797,7 +803,21 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="sm:col-span-2">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Vendor / Source</label>
-                      <input autoFocus className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg" placeholder="e.g. Sam's Club" value={cardFormData.source} onChange={e => setCardFormData({...cardFormData, source: e.target.value})} required autoComplete="off" />
+                      <input 
+                        autoFocus 
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg" 
+                        placeholder="e.g. Sam's Club" 
+                        value={cardFormData.source} 
+                        onChange={e => setCardFormData({...cardFormData, source: e.target.value})} 
+                        list="vendor-suggestions"
+                        required 
+                        autoComplete="off" 
+                      />
+                      <datalist id="vendor-suggestions">
+                        {rememberedVendors.map(vendor => (
+                          <option key={vendor} value={vendor} />
+                        ))}
+                      </datalist>
                     </div>
                     <div className="sm:col-span-2">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Full Card Number</label>
@@ -808,7 +828,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                       <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg font-mono" placeholder="e.g. 1234" value={cardFormData.accessCode} onChange={e => setCardFormData({...cardFormData, accessCode: e.target.value})} autoComplete="off" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Date Added</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Date Purchased</label>
                       <input type="date" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold text-slate-500 transition-all text-lg" value={cardFormData.dateReceived} onChange={e => setCardFormData({...cardFormData, dateReceived: e.target.value})} required />
                     </div>
                     <div>
