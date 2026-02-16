@@ -5,6 +5,9 @@ export interface GiftCard {
   pin: string;
   originalBalance: number;
   currentBalance: number;
+  source: string;
+  dateReceived: string;
+  dateCompleted?: string;
 }
 
 export type Category = 'Documents' | 'Clothing' | 'Medical/Personal';
