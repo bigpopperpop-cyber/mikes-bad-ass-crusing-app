@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { GiftCard, CashEntry, GiftCardLog, Expense, CreditCardEntry } from '../types';
-import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2, History, ChevronDown, ChevronUp, ShoppingCart, Tag, ArrowDownRight, PieChart, BarChart3, CreditCard as CreditCardIcon } from 'lucide-react';
+import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2, History, ChevronDown, ChevronUp, ShoppingCart, Tag, ArrowDownRight, PieChart, BarChart3, CreditCard as CreditCardIcon, FileText } from 'lucide-react';
 
 interface Props {
   projectedTripCost: number;
@@ -38,7 +38,8 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
   const [logFormData, setLogFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     amount: '',
-    description: ''
+    description: '',
+    notes: ''
   });
 
   const [cardFormData, setCardFormData] = useState<Partial<GiftCard>>({
@@ -51,7 +52,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
   });
 
   const [newCredit, setNewCredit] = useState<Partial<CreditCardEntry>>({
-    last4: '', amount: 0, date: new Date().toISOString().split('T')[0], description: ''
+    last4: '', amount: 0, date: new Date().toISOString().split('T')[0], description: '', notes: ''
   });
 
   useEffect(() => {
@@ -152,7 +153,8 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
           id: Math.random().toString(36).substr(2, 9),
           date: logFormData.date,
           amount: amount,
-          description: logFormData.description
+          description: logFormData.description,
+          notes: logFormData.notes.trim() || undefined
         };
         const currentLogs = card.logs || [];
         return {
@@ -167,7 +169,8 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
     setLogFormData({
       date: new Date().toISOString().split('T')[0],
       amount: '',
-      description: ''
+      description: '',
+      notes: ''
     });
   };
 
@@ -196,10 +199,11 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
         amount: Number(newCredit.amount) || 0,
         date: newCredit.date || '',
         description: newCredit.description || '',
+        notes: newCredit.notes?.trim() || undefined
       };
       setCreditEntries([entry, ...creditEntries]);
       setIsAddingCredit(false);
-      setNewCredit({ last4: '', amount: 0, date: new Date().toISOString().split('T')[0], description: '' });
+      setNewCredit({ last4: '', amount: 0, date: new Date().toISOString().split('T')[0], description: '', notes: '' });
     }
   };
 
@@ -526,44 +530,69 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                         {!isCompleted && (
                           <div className="bg-white p-6 rounded-[1.75rem] border-2 border-slate-200 shadow-sm mb-8">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Log New Expenditure</p>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                              <div className="md:col-span-2">
-                                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Allocation Item</label>
-                                <div className="relative">
-                                  <select 
-                                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-blue-500 appearance-none pr-10"
-                                    value={logFormData.description}
-                                    onChange={e => setLogFormData({...logFormData, description: e.target.value})}
-                                  >
-                                    <option value="">Select Purpose...</option>
-                                    {expenses.map((exp) => (
-                                      <option key={exp.id} value={exp.description}>
-                                        {exp.description} (${exp.amount.toLocaleString()})
-                                      </option>
-                                    ))}
-                                    <option value="General Spending">General Spending</option>
-                                    <option value="Tips & Gratuities">Tips & Gratuities</option>
-                                  </select>
-                                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="md:col-span-1">
+                                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Allocation Item</label>
+                                  <div className="relative">
+                                    <select 
+                                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-blue-500 appearance-none pr-10"
+                                      value={logFormData.description}
+                                      onChange={e => setLogFormData({...logFormData, description: e.target.value})}
+                                    >
+                                      <option value="">Select Purpose...</option>
+                                      {expenses.map((exp) => (
+                                        <option key={exp.id} value={exp.description}>
+                                          {exp.description} (${exp.amount.toLocaleString()})
+                                        </option>
+                                      ))}
+                                      <option value="General Spending">General Spending</option>
+                                      <option value="Tips & Gratuities">Tips & Gratuities</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Amount ($)</label>
+                                  <input 
+                                    type="number" step="0.01"
+                                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-blue-500"
+                                    placeholder="0.00"
+                                    value={logFormData.amount}
+                                    onChange={e => setLogFormData({...logFormData, amount: e.target.value})}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Transaction Date</label>
+                                  <input 
+                                    type="date"
+                                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-blue-500"
+                                    value={logFormData.date}
+                                    onChange={e => setLogFormData({...logFormData, date: e.target.value})}
+                                  />
                                 </div>
                               </div>
-                              <div>
-                                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Amount ($)</label>
-                                <input 
-                                  type="number" step="0.01"
-                                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-blue-500"
-                                  placeholder="0.00"
-                                  value={logFormData.amount}
-                                  onChange={e => setLogFormData({...logFormData, amount: e.target.value})}
-                                />
-                              </div>
-                              <div className="flex items-end">
-                                <button 
-                                  onClick={() => addLogEntry(card.id)}
-                                  className="w-full bg-slate-900 text-white font-black py-3 rounded-xl text-xs uppercase tracking-widest shadow-lg active-scale flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
-                                >
-                                  <Plus className="w-4 h-4" /> Log Entry
-                                </button>
+                              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="md:col-span-3">
+                                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Notes (Optional)</label>
+                                  <div className="relative">
+                                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                                    <input 
+                                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl pl-10 pr-4 py-3 text-sm font-medium outline-none focus:border-blue-500"
+                                      placeholder="Memo or receipt details..."
+                                      value={logFormData.notes}
+                                      onChange={e => setLogFormData({...logFormData, notes: e.target.value})}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex items-end">
+                                  <button 
+                                    onClick={() => addLogEntry(card.id)}
+                                    className="w-full bg-slate-900 text-white font-black py-3 rounded-xl text-xs uppercase tracking-widest shadow-lg active-scale flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
+                                  >
+                                    <Plus className="w-4 h-4" /> Log Entry
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -590,7 +619,10 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                                         <p className="font-black text-slate-900 text-sm uppercase truncate leading-none">{log.description}</p>
                                         <span className="text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">{new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                                       </div>
-                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mt-1.5">Deducted from {card.source}</p>
+                                      {log.notes && (
+                                        <p className="text-[10px] font-bold text-slate-500 mt-1 italic line-clamp-1">"{log.notes}"</p>
+                                      )}
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mt-1">Deducted from {card.source}</p>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-6">
@@ -639,19 +671,22 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                 ) : (
                   creditEntries.map(entry => (
                     <div key={entry.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group relative">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-orange-50 p-3 rounded-xl text-orange-600 border border-orange-100">
+                      <div className="flex items-center gap-4 min-w-0 flex-1 mr-4">
+                        <div className="bg-orange-50 p-3 rounded-xl text-orange-600 border border-orange-100 shrink-0">
                           <CreditCardIcon className="w-5 h-5" />
                         </div>
-                        <div>
-                          <p className="font-black text-slate-900 text-sm uppercase leading-tight">{entry.description}</p>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <span className="text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Card •••• {entry.last4}</span>
-                            <span className="text-[8px] font-black text-slate-400 uppercase">{new Date(entry.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                        <div className="min-w-0">
+                          <p className="font-black text-slate-900 text-sm uppercase leading-tight truncate">{entry.description}</p>
+                          {entry.notes && (
+                            <p className="text-[10px] font-bold text-slate-500 mt-0.5 italic line-clamp-1">"{entry.notes}"</p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <span className="text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-tighter whitespace-nowrap">Card •••• {entry.last4}</span>
+                            <span className="text-[8px] font-black text-slate-400 uppercase whitespace-nowrap">{new Date(entry.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 shrink-0">
                         <p className="text-base font-black text-slate-900 tabular-nums">-${entry.amount.toFixed(2)}</p>
                         <button onClick={() => removeCreditEntry(entry.id)} className="p-2 text-slate-200 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
                       </div>
@@ -726,7 +761,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
       {(isAddingCard || isAddingCash || isAddingCredit) && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-300" onClick={() => { setIsAddingCard(false); setIsAddingCash(false); setIsAddingCredit(false); }}>
           <div 
-            className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 sm:p-12 max-w-xl w-full shadow-2xl safe-pb animate-in slide-in-from-bottom-8 duration-500"
+            className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 sm:p-12 max-w-xl w-full shadow-2xl safe-pb animate-in slide-in-from-bottom-8 duration-500 overflow-y-auto max-h-[90vh]"
             onClick={e => e.stopPropagation()}
           >
             {isAddingCard ? (
@@ -737,7 +772,6 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                 </div>
                 <p className="text-slate-400 font-bold mb-10">Updating details for local storage.</p>
                 <form onSubmit={handleSaveCard} className="space-y-6">
-                  {/* ... Existing form ... */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="sm:col-span-2">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Vendor / Source</label>
@@ -775,7 +809,6 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                 </div>
                 <p className="text-slate-400 font-bold mb-10">Record physical savings for the trip.</p>
                 <form onSubmit={handleAddCash} className="space-y-6">
-                  {/* ... Existing cash form ... */}
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Saving Description</label>
                     <input autoFocus className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-emerald-500 font-bold transition-all text-lg" placeholder="e.g. Weekly Stash" value={newCash.description} onChange={e => setNewCash({...newCash, description: e.target.value})} required autoComplete="off" />
@@ -848,6 +881,16 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                     <div className="sm:col-span-2">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Transaction Date</label>
                       <input type="date" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-orange-500 font-bold text-slate-500 transition-all text-lg" value={newCredit.date} onChange={e => setNewCredit({...newCredit, date: e.target.value})} required />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Notes (Optional)</label>
+                      <textarea 
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 font-medium transition-all text-sm resize-none"
+                        placeholder="Additional details about this charge..."
+                        rows={3}
+                        value={newCredit.notes}
+                        onChange={e => setNewCredit({...newCredit, notes: e.target.value})}
+                      />
                     </div>
                   </div>
                   <div className="flex gap-4 pt-6">

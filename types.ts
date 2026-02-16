@@ -4,6 +4,7 @@ export interface GiftCardLog {
   date: string;
   amount: number;
   description: string;
+  notes?: string;
 }
 
 export interface GiftCard {
@@ -31,6 +32,7 @@ export interface CreditCardEntry {
   amount: number;
   date: string;
   description: string;
+  notes?: string;
 }
 
 export interface Expense {
