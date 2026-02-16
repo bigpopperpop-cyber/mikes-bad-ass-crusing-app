@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from 'react';
 import { Download, Upload, Copy, Check, AlertCircle, RefreshCw, FileJson, Link, ShieldAlert } from 'lucide-react';
 
@@ -13,7 +14,8 @@ export const DataManagement: React.FC = () => {
       cruise_gift_cards: localStorage.getItem('cruise_gift_cards'),
       cruise_packing_items: localStorage.getItem('cruise_packing_items'),
       cruise_expenses: localStorage.getItem('cruise_expenses'),
-      version: '1.4',
+      cruise_cash_entries: localStorage.getItem('cruise_cash_entries'),
+      version: '1.5',
       timestamp: new Date().toISOString()
     };
   };
@@ -35,7 +37,6 @@ export const DataManagement: React.FC = () => {
     try {
       const data = getAllData();
       const jsonString = JSON.stringify(data);
-      // Use a more robust encoding for characters
       const encoded = btoa(encodeURIComponent(jsonString));
       navigator.clipboard.writeText(encoded);
       setCopySuccess(true);
@@ -52,6 +53,7 @@ export const DataManagement: React.FC = () => {
       if (json.cruise_gift_cards) localStorage.setItem('cruise_gift_cards', json.cruise_gift_cards);
       if (json.cruise_packing_items) localStorage.setItem('cruise_packing_items', json.cruise_packing_items);
       if (json.cruise_expenses) localStorage.setItem('cruise_expenses', json.cruise_expenses);
+      if (json.cruise_cash_entries) localStorage.setItem('cruise_cash_entries', json.cruise_cash_entries);
       
       alert('Data imported successfully! The page will now reload.');
       window.location.reload();
@@ -84,14 +86,13 @@ export const DataManagement: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Backup Section */}
         <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-200 shadow-sm hover:border-blue-500/50 transition-colors flex flex-col">
           <div className="bg-blue-50 w-16 h-16 rounded-3xl flex items-center justify-center mb-6">
             <Download className="text-blue-600 w-8 h-8" />
           </div>
           <h3 className="text-2xl font-black text-slate-900 mb-3">Backup Data</h3>
           <p className="text-slate-500 mb-8 flex-1 leading-relaxed">
-            Download your entire cruise setup including gift cards, budget items, and packing lists to a secure local file.
+            Download your entire cruise setup including gift cards, cash entries, and budget items.
           </p>
           <div className="space-y-3">
             <button 
@@ -111,14 +112,13 @@ export const DataManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Import Section */}
         <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-200 shadow-sm hover:border-purple-500/50 transition-colors flex flex-col">
           <div className="bg-purple-50 w-16 h-16 rounded-3xl flex items-center justify-center mb-6">
             <Upload className="text-purple-600 w-8 h-8" />
           </div>
           <h3 className="text-2xl font-black text-slate-900 mb-3">Import Data</h3>
           <p className="text-slate-500 mb-8 flex-1 leading-relaxed">
-            Move your plans to a new phone or restore from a backup. This will replace your current data on this device.
+            Restore from a backup. This includes your cash savings and all other trip information.
           </p>
           <div className="space-y-3">
             <input 
@@ -164,7 +164,6 @@ export const DataManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Security Info Card */}
       <div className="bg-slate-900 text-white p-10 rounded-[3rem] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
         <div className="relative z-10 flex flex-col md:flex-row items-start gap-6">
@@ -172,11 +171,10 @@ export const DataManagement: React.FC = () => {
             <ShieldAlert className="w-8 h-8 text-orange-400" />
           </div>
           <div>
-            <h4 className="text-xl font-black mb-3">Data Security & Privacy</h4>
+            <h4 className="text-xl font-black mb-3">Data Privacy Note</h4>
             <p className="text-slate-400 text-sm leading-relaxed font-medium">
-              Everything you enter—gift card numbers, PINs, budget items, and packing lists—is stored <strong>locally in your browser</strong>. 
-              We never upload this sensitive data to a server. This means you are responsible for your own backups. 
-              If you clear your browser history or data, your cruise plans will be lost unless you have a backup file saved or a data string copied.
+              Your gift card numbers, PINs, and cash savings amounts are stored <strong>only on your device</strong>. 
+              Always keep a backup file if you plan to switch phones or clear your browser data.
             </p>
           </div>
         </div>

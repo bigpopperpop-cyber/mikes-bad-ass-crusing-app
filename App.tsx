@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Ship, Calendar, Package, Wallet, Menu, X, Settings2, Save, Database, Target } from 'lucide-react';
+import { Ship, Calendar, Package, Wallet, Menu, X, Settings2, Save, Database, Target, Banknote } from 'lucide-react';
 import { CountdownTimer } from './components/CountdownTimer';
 import { GiftCardLedger } from './components/GiftCardLedger';
 import { PackingChecklist } from './components/PackingChecklist';
@@ -76,7 +76,7 @@ const App: React.FC = () => {
           </button>
           <button onClick={() => { setActiveTab('ledger'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'ledger' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
             <Wallet className="w-5 h-5" />
-            <span className="font-semibold text-sm">Gift Card Ledger</span>
+            <span className="font-semibold text-sm">Trip Funds & Cash</span>
           </button>
           <button onClick={() => { setActiveTab('packing'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'packing' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
             <Package className="w-5 h-5" />
@@ -172,7 +172,7 @@ const App: React.FC = () => {
           {activeTab === 'ledger' && (
             <GiftCardLedger 
               projectedTripCost={projectedTripCost} 
-              onUpdateProjectedCost={() => {}} // Disabled manual update since it's driven by expenses now
+              onUpdateProjectedCost={() => {}} 
             />
           )}
           {activeTab === 'packing' && <PackingChecklist />}

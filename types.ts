@@ -10,6 +10,13 @@ export interface GiftCard {
   dateCompleted?: string;
 }
 
+export interface CashEntry {
+  id: string;
+  description: string;
+  amount: number;
+  dateAdded: string;
+}
+
 export interface Expense {
   id: string;
   description: string;
