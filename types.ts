@@ -2,7 +2,7 @@
 export interface GiftCard {
   id: string;
   cardNumber: string;
-  pin: string;
+  accessCode: string; // Renamed from pin
   originalBalance: number;
   currentBalance: number;
   source: string;

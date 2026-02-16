@@ -23,10 +23,10 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
   const [isAddingCash, setIsAddingCash] = useState(false);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [revealedCardIds, setRevealedCardIds] = useState<Set<string>>(new Set());
-  const [copyFeedback, setCopyFeedback] = useState<string | null>(null); // To show "Copied!" for a specific ID
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null); 
   
   const [cardFormData, setCardFormData] = useState<Partial<GiftCard>>({
-    cardNumber: '', pin: '', originalBalance: 0, currentBalance: 0, source: '',
+    cardNumber: '', accessCode: '', originalBalance: 0, currentBalance: 0, source: '',
     dateReceived: new Date().toISOString().split('T')[0]
   });
 
@@ -59,7 +59,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
     setRevealedCardIds(newSet);
   };
 
-  const copyToClipboard = (text: string, id: string, type: 'number' | 'pin') => {
+  const copyToClipboard = (text: string, id: string, type: 'number' | 'code') => {
     navigator.clipboard.writeText(text);
     const feedbackKey = `${id}-${type}`;
     setCopyFeedback(feedbackKey);
@@ -70,15 +70,13 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
     e.preventDefault();
     if (cardFormData.cardNumber && cardFormData.source) {
       if (editingCardId) {
-        // Update existing card
         setCards(cards.map(c => c.id === editingCardId ? { ...c, ...cardFormData } as GiftCard : c));
         setEditingCardId(null);
       } else {
-        // Add new card
         const card: GiftCard = {
           id: Math.random().toString(36).substr(2, 9),
           cardNumber: cardFormData.cardNumber || '',
-          pin: cardFormData.pin || '',
+          accessCode: cardFormData.accessCode || '',
           originalBalance: Number(cardFormData.originalBalance) || 0,
           currentBalance: Number(cardFormData.currentBalance) || 0,
           source: cardFormData.source || '',
@@ -93,7 +91,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
 
   const resetCardForm = () => {
     setCardFormData({ 
-      cardNumber: '', pin: '', originalBalance: 0, currentBalance: 0, source: '', 
+      cardNumber: '', accessCode: '', originalBalance: 0, currentBalance: 0, source: '', 
       dateReceived: new Date().toISOString().split('T')[0] 
     });
   };
@@ -213,7 +211,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                 cards.map(card => {
                   const revealed = revealedCardIds.has(card.id);
                   const isNumberCopied = copyFeedback === `${card.id}-number`;
-                  const isPinCopied = copyFeedback === `${card.id}-pin`;
+                  const isCodeCopied = copyFeedback === `${card.id}-code`;
 
                   return (
                     <div key={card.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between transition-colors active:bg-slate-50 relative group">
@@ -235,20 +233,20 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                             <button 
                               onClick={(e) => { e.stopPropagation(); toggleReveal(card.id); }}
                               className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 transition-colors shrink-0"
-                              title={revealed ? "Hide number" : "Show number"}
+                              title={revealed ? "Hide code" : "Show code"}
                             >
                               {revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>
                           </div>
-                          {card.pin && (
+                          {card.accessCode && (
                             <div className="flex items-center gap-2 mt-1">
                                <button 
-                                 onClick={() => copyToClipboard(card.pin, card.id, 'pin')}
-                                 className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 -ml-2 rounded flex items-center gap-1.5 transition-all ${isPinCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-300 hover:bg-slate-100 hover:text-slate-500'}`}
-                                 title="Click to copy PIN"
+                                 onClick={() => copyToClipboard(card.accessCode, card.id, 'code')}
+                                 className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 -ml-2 rounded flex items-center gap-1.5 transition-all ${isCodeCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-300 hover:bg-slate-100 hover:text-slate-500'}`}
+                                 title="Click to copy Access Code"
                                >
-                                 PIN: {revealed ? card.pin : '••••'}
-                                 {isPinCopied && <Check className="w-3 h-3" />}
+                                 Access Code: {revealed ? card.accessCode : '••••'}
+                                 {isCodeCopied && <Check className="w-3 h-3" />}
                                </button>
                             </div>
                           )}
@@ -363,7 +361,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                   <div className="bg-blue-600 p-2.5 rounded-2xl"><CreditCard className="w-7 h-7 text-white" /></div>
                   <h3 className="text-3xl font-black text-slate-900 tracking-tight">{editingCardId ? 'Edit Card' : 'Register Card'}</h3>
                 </div>
-                <p className="text-slate-400 font-bold mb-10">Updating full details for local storage.</p>
+                <p className="text-slate-400 font-bold mb-10">Updating details for local storage.</p>
                 <form onSubmit={handleSaveCard} className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="sm:col-span-2">
@@ -375,6 +373,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         value={cardFormData.source}
                         onChange={e => setCardFormData({...cardFormData, source: e.target.value})}
                         required
+                        autoComplete="off"
                       />
                     </div>
                     <div className="sm:col-span-2">
@@ -387,16 +386,18 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                         value={cardFormData.cardNumber}
                         onChange={e => setCardFormData({...cardFormData, cardNumber: e.target.value.replace(/\D/g, '')})}
                         required
+                        autoComplete="off"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Security PIN</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Access Code</label>
                       <input 
                         type="text"
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg font-mono"
-                        placeholder="Optional"
-                        value={cardFormData.pin}
-                        onChange={e => setCardFormData({...cardFormData, pin: e.target.value})}
+                        placeholder="e.g. 1234"
+                        value={cardFormData.accessCode}
+                        onChange={e => setCardFormData({...cardFormData, accessCode: e.target.value})}
+                        autoComplete="off"
                       />
                     </div>
                     <div className="hidden sm:block"></div>
@@ -448,6 +449,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost }) => {
                       value={newCash.description}
                       onChange={e => setNewCash({...newCash, description: e.target.value})}
                       required
+                      autoComplete="off"
                     />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
