@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { GiftCard, CashEntry, GiftCardLog, Expense, CreditCardEntry } from '../types';
-import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2, History, ChevronDown, ChevronUp, ShoppingCart, Tag, ArrowDownRight, PieChart, BarChart3, CreditCard as CreditCardIcon, FileText } from 'lucide-react';
+import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2, History, ChevronDown, ChevronUp, ShoppingCart, Tag, ArrowDownRight, PieChart, BarChart3, CreditCard as CreditCardIcon, FileText, Key, Hash } from 'lucide-react';
 
 interface Props {
   projectedTripCost: number;
@@ -295,6 +295,11 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
     return fullMasked.match(/.{1,4}/g)?.join(' ') || fullMasked;
   };
 
+  const formatPin = (pin: string, revealed: boolean) => {
+    if (revealed) return pin;
+    return pin.replace(/./g, '•');
+  };
+
   return (
     <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-700">
       {/* Financial Summary Dashboard */}
@@ -468,24 +473,41 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className={`font-black text-xl sm:text-2xl leading-none truncate ${isCompleted ? 'text-emerald-900 line-through decoration-emerald-300' : 'text-slate-900'}`}>{card.source}</p>
-                              {isCompleted ? (
-                                <span className="text-[10px] font-black bg-emerald-200 text-emerald-700 px-2 py-1 rounded-full uppercase tracking-wider">Balance Expended</span>
-                              ) : card.logs && card.logs.length > 0 && (
-                                <span className="text-[10px] font-black bg-blue-100 text-blue-700 px-2 py-1 rounded-full uppercase tracking-wider">Active Ledger</span>
-                              )}
+                              <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(card.dateReceived).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
                             </div>
-                            <div className="flex items-center gap-3 mt-3">
-                              <button 
-                                onClick={() => copyToClipboard(card.cardNumber, card.id, 'number')}
-                                className={`text-[13px] sm:text-[14px] font-mono font-bold uppercase tracking-widest px-2.5 py-1.5 -ml-2 rounded-xl transition-all text-left flex items-center gap-2 ${isNumberCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'}`}
-                                title="Copy Card Number"
-                              >
-                                {formatCardNumber(card.cardNumber, revealed)}
-                                {isNumberCopied ? <ClipboardCheck className="w-4 h-4" /> : <Copy className="w-4 h-4 opacity-0 lg:group-hover:opacity-100" />}
-                              </button>
-                              <button onClick={() => toggleReveal(card.id)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-300 hover:text-slate-600 transition-colors">
-                                {revealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                              </button>
+                            
+                            <div className="space-y-2 mt-4">
+                              <div className="flex items-center gap-3">
+                                <Hash className="w-4 h-4 text-slate-300 shrink-0" />
+                                <button 
+                                  onClick={() => copyToClipboard(card.cardNumber, card.id, 'number')}
+                                  className={`text-[13px] sm:text-[14px] font-mono font-bold uppercase tracking-widest px-2.5 py-1.5 -ml-1 rounded-xl transition-all text-left flex items-center gap-2 ${isNumberCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'}`}
+                                  title="Copy Card Number"
+                                >
+                                  {formatCardNumber(card.cardNumber, revealed)}
+                                  {isNumberCopied ? <ClipboardCheck className="w-4 h-4" /> : <Copy className="w-4 h-4 opacity-0 lg:group-hover:opacity-100" />}
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <Key className="w-4 h-4 text-slate-300 shrink-0" />
+                                <div className="flex items-center gap-2">
+                                  <button 
+                                    onClick={() => copyToClipboard(card.accessCode, card.id, 'code')}
+                                    className={`text-[13px] sm:text-[14px] font-mono font-bold uppercase tracking-widest px-2.5 py-1.5 -ml-1 rounded-xl transition-all text-left flex items-center gap-2 ${isCodeCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'}`}
+                                    title="Copy Access Code"
+                                  >
+                                    PIN: {formatPin(card.accessCode, revealed)}
+                                    {isCodeCopied ? <ClipboardCheck className="w-4 h-4" /> : <Copy className="w-4 h-4 opacity-0 lg:group-hover:opacity-100" />}
+                                  </button>
+                                  <button onClick={() => toggleReveal(card.id)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-300 hover:text-slate-600 transition-colors">
+                                    {revealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -782,11 +804,11 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                       <input type="text" inputMode="numeric" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg tracking-widest font-mono" placeholder="Enter all digits" value={cardFormData.cardNumber} onChange={e => setCardFormData({...cardFormData, cardNumber: e.target.value.replace(/\D/g, '')})} required autoComplete="off" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Access Code</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Access Code (PIN)</label>
                       <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg font-mono" placeholder="e.g. 1234" value={cardFormData.accessCode} onChange={e => setCardFormData({...cardFormData, accessCode: e.target.value})} autoComplete="off" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Date Received</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Date Added</label>
                       <input type="date" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold text-slate-500 transition-all text-lg" value={cardFormData.dateReceived} onChange={e => setCardFormData({...cardFormData, dateReceived: e.target.value})} required />
                     </div>
                     <div>
