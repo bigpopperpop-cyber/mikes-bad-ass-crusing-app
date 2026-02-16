@@ -234,7 +234,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
           originalBalance: Number(cardFormData.originalBalance) || 0,
           currentBalance: Number(cardFormData.currentBalance) || 0,
           source: cardFormData.source || '',
-          dateReceived: cardFormData.dateReceived || '',
+          dateReceived: cardFormData.dateReceived || new Date().toISOString().split('T')[0],
           logs: []
         };
         setCards([...cards, card]);
@@ -785,7 +785,10 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Access Code</label>
                       <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg font-mono" placeholder="e.g. 1234" value={cardFormData.accessCode} onChange={e => setCardFormData({...cardFormData, accessCode: e.target.value})} autoComplete="off" />
                     </div>
-                    <div className="hidden sm:block"></div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Date Received</label>
+                      <input type="date" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold text-slate-500 transition-all text-lg" value={cardFormData.dateReceived} onChange={e => setCardFormData({...cardFormData, dateReceived: e.target.value})} required />
+                    </div>
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Original Balance ($)</label>
                       <input type="number" step="0.01" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-black transition-all text-lg" placeholder="0.00" value={cardFormData.originalBalance || ''} onChange={e => setCardFormData({...cardFormData, originalBalance: parseFloat(e.target.value) || 0})} required />
