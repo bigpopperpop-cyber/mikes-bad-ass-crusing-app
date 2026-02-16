@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { GiftCard, CashEntry, GiftCardLog, Expense } from '../types';
-import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2, History, ChevronDown, ChevronUp, ShoppingCart, Tag } from 'lucide-react';
+import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2, History, ChevronDown, ChevronUp, ShoppingCart, Tag, ArrowDownRight } from 'lucide-react';
 
 interface Props {
   projectedTripCost: number;
@@ -131,6 +131,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
   };
 
   const removeLogEntry = (cardId: string, logId: string) => {
+    if (!window.confirm('Remove this transaction and restore balance?')) return;
     setCards(cards.map(card => {
       if (card.id === cardId) {
         const logToRemove = card.logs?.find(l => l.id === logId);
@@ -294,235 +295,177 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
             </button>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border-2 border-slate-200 shadow-sm overflow-hidden">
-            <div className="divide-y divide-slate-100">
-              {cards.length === 0 ? (
-                <div className="p-16 text-center text-slate-400 font-bold italic opacity-60">
-                  <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-10" />
-                  Register your cards to start saving.
-                </div>
-              ) : (
-                cards.map(card => {
-                  const revealed = revealedCardIds.has(card.id);
-                  const isNumberCopied = copyFeedback === `${card.id}-number`;
-                  const isCodeCopied = copyFeedback === `${card.id}-code`;
-                  const isCompleted = !!card.dateCompleted;
-                  const isExpanded = expandedRegisterId === card.id;
+          <div className="space-y-4">
+            {cards.length === 0 ? (
+              <div className="bg-white rounded-[2.5rem] border-2 border-slate-200 p-20 text-center text-slate-400 font-bold italic opacity-60">
+                <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-10" />
+                Register your cards to start saving.
+              </div>
+            ) : (
+              cards.map(card => {
+                const revealed = revealedCardIds.has(card.id);
+                const isNumberCopied = copyFeedback === `${card.id}-number`;
+                const isCodeCopied = copyFeedback === `${card.id}-code`;
+                const isCompleted = !!card.dateCompleted;
+                const isExpanded = expandedRegisterId === card.id;
 
-                  return (
-                    <div key={card.id} className="flex flex-col">
-                      <div 
-                        className={`p-6 flex flex-col lg:flex-row lg:items-center justify-between transition-all relative group gap-6 ${isCompleted ? 'bg-emerald-50/50 opacity-75' : 'hover:bg-slate-50'}`}
-                      >
-                        {/* Left: Card Info & Actions */}
-                        <div className="flex items-start justify-between w-full lg:w-auto gap-4">
-                          <div className="flex items-start gap-4 sm:gap-5 min-w-0">
-                            <div className={`p-3 sm:p-4 rounded-[1.25rem] border shrink-0 transition-colors ${isCompleted ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
-                              {isCompleted ? <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /> : <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className={`font-black text-lg sm:text-xl leading-none truncate ${isCompleted ? 'text-emerald-900 line-through decoration-emerald-300' : 'text-slate-900'}`}>{card.source}</p>
-                                {isCompleted && <span className="text-[8px] font-black bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Spent</span>}
-                                {card.logs && card.logs.length > 0 && !isCompleted && <span className="text-[8px] font-black bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Active History</span>}
-                              </div>
-                              <div className="flex items-center gap-2 mt-2 group/num relative">
-                                <button 
-                                  onClick={() => copyToClipboard(card.cardNumber, card.id, 'number')}
-                                  className={`text-[12px] sm:text-[13px] font-mono font-bold uppercase tracking-wider px-2 py-1 -ml-2 rounded-lg transition-all text-left flex items-center gap-2 ${isNumberCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'}`}
-                                  title="Click to copy card number"
-                                >
-                                  {formatCardNumber(card.cardNumber, revealed)}
-                                  {isNumberCopied ? <ClipboardCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 opacity-0 lg:group-hover/num:opacity-100" />}
-                                </button>
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); toggleReveal(card.id); }}
-                                  className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 transition-colors shrink-0"
-                                  title={revealed ? "Hide code" : "Show code"}
-                                >
-                                  {revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                </button>
-                              </div>
-                              {card.accessCode && (
-                                <div className="flex items-center gap-2 mt-1">
-                                  <button 
-                                    onClick={() => copyToClipboard(card.accessCode, card.id, 'code')}
-                                    className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 -ml-2 rounded flex items-center gap-1.5 transition-all ${isCodeCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-300 hover:bg-slate-100 hover:text-slate-500'}`}
-                                    title="Click to copy Access Code"
-                                  >
-                                    Access Code: {revealed ? card.accessCode : '••••'}
-                                    {isCodeCopied && <Check className="w-3 h-3" />}
-                                  </button>
-                                </div>
+                return (
+                  <div key={card.id} className={`bg-white rounded-[2.5rem] border-2 shadow-sm transition-all overflow-hidden ${isCompleted ? 'border-emerald-100 opacity-80' : 'border-slate-200 hover:border-blue-300'}`}>
+                    
+                    {/* Main Card Content */}
+                    <div className={`p-6 sm:p-8 flex flex-col gap-6 ${isCompleted ? 'bg-emerald-50/30' : ''}`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+                          <div className={`p-4 rounded-[1.5rem] border-2 shrink-0 transition-colors ${isCompleted ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                            {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <CreditCard className="w-6 h-6" />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className={`font-black text-xl sm:text-2xl leading-none truncate ${isCompleted ? 'text-emerald-900 line-through decoration-emerald-300' : 'text-slate-900'}`}>{card.source}</p>
+                              {isCompleted ? (
+                                <span className="text-[10px] font-black bg-emerald-200 text-emerald-700 px-2 py-1 rounded-full uppercase tracking-wider">Balance Expended</span>
+                              ) : card.logs && card.logs.length > 0 && (
+                                <span className="text-[10px] font-black bg-blue-100 text-blue-700 px-2 py-1 rounded-full uppercase tracking-wider">Active Ledger</span>
                               )}
                             </div>
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            <button 
-                              onClick={() => setExpandedRegisterId(isExpanded ? null : card.id)}
-                              className={`p-3 rounded-xl transition-all active-scale ${isExpanded ? 'text-blue-600 bg-blue-50' : 'text-slate-300 hover:text-blue-600 hover:bg-blue-50'}`}
-                              title="Card Register / Spending Log"
-                            >
-                              <Receipt className="w-5 h-5 sm:w-6" />
-                            </button>
-                            <button 
-                              onClick={() => toggleComplete(card.id)}
-                              className={`p-3 rounded-xl transition-all active-scale ${isCompleted ? 'text-emerald-600 bg-emerald-100' : 'text-slate-300 hover:text-emerald-600 hover:bg-emerald-50'}`}
-                              title={isCompleted ? "Mark as Active" : "Mark as Fully Used"}
-                            >
-                              <CheckCircle2 className="w-5 h-5 sm:w-6" />
-                            </button>
-                            <button 
-                              onClick={() => startEditing(card)} 
-                              className="p-3 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active-scale"
-                              title="Edit full card details"
-                            >
-                              <Edit2 className="w-5 h-5 sm:w-6" />
-                            </button>
-                            <button 
-                              onClick={() => removeCard(card.id)} 
-                              className="p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
-                              title="Remove Card"
-                            >
-                              <Trash2 className="w-5 h-5 sm:w-6" />
-                            </button>
+                            <div className="flex items-center gap-3 mt-3">
+                              <button 
+                                onClick={() => copyToClipboard(card.cardNumber, card.id, 'number')}
+                                className={`text-[13px] sm:text-[14px] font-mono font-bold uppercase tracking-widest px-2.5 py-1.5 -ml-2 rounded-xl transition-all text-left flex items-center gap-2 ${isNumberCopied ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'}`}
+                                title="Copy Card Number"
+                              >
+                                {formatCardNumber(card.cardNumber, revealed)}
+                                {isNumberCopied ? <ClipboardCheck className="w-4 h-4" /> : <Copy className="w-4 h-4 opacity-0 lg:group-hover:opacity-100" />}
+                              </button>
+                              <button onClick={() => toggleReveal(card.id)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-300 hover:text-slate-600 transition-colors">
+                                {revealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
                           </div>
                         </div>
-                        
-                        {/* Right: Balances */}
-                        <div className="flex items-center justify-between sm:justify-start lg:justify-end gap-6 sm:gap-10 border-t border-slate-50 lg:border-0 pt-5 lg:pt-0 w-full lg:w-auto">
-                          <div className="text-left sm:text-right">
-                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Initial</p>
-                            <p className="font-bold text-slate-400 tabular-nums text-sm sm:text-base">${card.originalBalance.toFixed(2)}</p>
-                          </div>
 
-                          <div className="text-left sm:text-right min-w-[100px] sm:min-w-[120px]">
-                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCompleted ? 'text-emerald-500' : 'text-blue-600'}`}>
-                              {isCompleted ? 'Final Value' : 'Available'}
-                            </p>
-                            <p className={`font-black text-xl sm:text-2xl tabular-nums tracking-tight ${isCompleted ? 'text-emerald-700' : 'text-slate-900'}`}>
-                              ${card.currentBalance.toFixed(2)}
-                            </p>
-                          </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setExpandedRegisterId(isExpanded ? null : card.id)} className={`p-3 rounded-2xl transition-all ${isExpanded ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-blue-50 hover:text-blue-600'}`} title="Open Register">
+                            <Receipt className="w-6 h-6" />
+                          </button>
+                          <button onClick={() => startEditing(card)} className="p-3 text-slate-300 hover:bg-slate-100 hover:text-slate-900 rounded-2xl transition-all"><Edit2 className="w-6 h-6" /></button>
+                          <button onClick={() => removeCard(card.id)} className="p-3 text-slate-300 hover:bg-red-50 hover:text-red-600 rounded-2xl transition-all"><Trash2 className="w-6 h-6" /></button>
                         </div>
                       </div>
 
-                      {/* Expandable Register Section */}
-                      {isExpanded && (
-                        <div className="bg-slate-50 border-t border-slate-100 p-6 sm:p-8 animate-in slide-in-from-top-4 duration-300 overflow-hidden">
-                          <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-2">
-                              <History className="w-4 h-4 text-blue-500" />
-                              <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Transaction Register</h4>
-                            </div>
-                            <button 
-                              onClick={() => setExpandedRegisterId(null)}
-                              className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 hover:text-slate-900"
-                            >
-                              Close Register <X className="w-3 h-3" />
-                            </button>
-                          </div>
+                      {/* Summary Balances at bottom of card */}
+                      <div className="flex items-end justify-between pt-6 border-t border-slate-100">
+                        <div>
+                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Original Value</p>
+                          <p className="font-bold text-slate-500 text-lg tabular-nums">${card.originalBalance.toFixed(2)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCompleted ? 'text-emerald-500' : 'text-blue-600'}`}>Current Balance</p>
+                          <p className={`text-3xl font-black tabular-nums tracking-tighter ${isCompleted ? 'text-emerald-700' : 'text-slate-900'}`}>${card.currentBalance.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Log Form */}
-                            <div className="space-y-4">
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">New Entry</p>
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Date</label>
-                                  <input 
-                                    type="date"
-                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-blue-500"
-                                    value={logFormData.date}
-                                    onChange={e => setLogFormData({...logFormData, date: e.target.value})}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Amount Used ($)</label>
-                                  <input 
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-blue-500"
-                                    value={logFormData.amount}
-                                    onChange={e => setLogFormData({...logFormData, amount: e.target.value})}
-                                  />
-                                </div>
-                              </div>
-                              <div>
-                                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1">Allocation / Purpose</label>
+                    {/* Integrated Register / Transaction Stream */}
+                    {isExpanded && (
+                      <div className="bg-slate-50/50 border-t-2 border-slate-100 p-6 sm:p-8 animate-in slide-in-from-top-4 duration-500">
+                        <div className="flex items-center justify-between mb-8">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-blue-600 p-2 rounded-xl"><History className="w-4 h-4 text-white" /></div>
+                            <h4 className="text-base font-black text-slate-900 uppercase tracking-widest">Digital Register</h4>
+                          </div>
+                          <button onClick={() => toggleComplete(card.id)} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500 hover:bg-emerald-600 hover:text-white'}`}>
+                            {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : null}
+                            {isCompleted ? 'Balance Retired' : 'Mark Balance Finished'}
+                          </button>
+                        </div>
+
+                        {/* Transaction Entry Form */}
+                        {!isCompleted && (
+                          <div className="bg-white p-6 rounded-[1.75rem] border-2 border-slate-200 shadow-sm mb-8">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Log New Expenditure</p>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                              <div className="md:col-span-2">
+                                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Allocation Item</label>
                                 <div className="relative">
                                   <select 
-                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:border-blue-500 appearance-none pr-8 transition-all"
+                                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-blue-500 appearance-none pr-10"
                                     value={logFormData.description}
                                     onChange={e => setLogFormData({...logFormData, description: e.target.value})}
                                   >
-                                    <option value="">Select Budget Item...</option>
+                                    <option value="">Select Purpose...</option>
                                     {expenses.map((exp) => (
                                       <option key={exp.id} value={exp.description}>
                                         {exp.description} (${exp.amount.toLocaleString()})
                                       </option>
                                     ))}
-                                    <option value="General/Other Spending">General / Other Spending</option>
+                                    <option value="General Spending">General Spending</option>
+                                    <option value="Tips & Gratuities">Tips & Gratuities</option>
                                   </select>
-                                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 </div>
                               </div>
-                              <button 
-                                onClick={() => addLogEntry(card.id)}
-                                className="w-full bg-blue-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-blue-200 active-scale"
-                              >
-                                Log Transaction
-                              </button>
-                            </div>
-
-                            {/* History Table */}
-                            <div className="bg-white rounded-2xl border border-slate-200 p-1 flex flex-col max-h-[250px] overflow-hidden">
-                              <div className="overflow-y-auto custom-scrollbar">
-                                {(!card.logs || card.logs.length === 0) ? (
-                                  <div className="p-10 text-center space-y-2">
-                                    <ShoppingCart className="w-8 h-8 mx-auto text-slate-200" />
-                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No Spending Logged</p>
-                                  </div>
-                                ) : (
-                                  <div className="divide-y divide-slate-100">
-                                    {card.logs.map(log => (
-                                      <div key={log.id} className="p-4 flex items-center justify-between group">
-                                        <div className="min-w-0 flex-1">
-                                          <div className="flex items-center gap-1.5">
-                                            <Tag className="w-2.5 h-2.5 text-slate-300" />
-                                            <p className="text-[10px] font-black text-slate-900 uppercase truncate leading-tight">{log.description}</p>
-                                          </div>
-                                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter mt-1">
-                                            {new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                          </p>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                          <p className="text-sm font-black text-red-500 tabular-nums">-${log.amount.toFixed(2)}</p>
-                                          <button 
-                                            onClick={() => removeLogEntry(card.id, log.id)}
-                                            className="p-2 text-slate-200 hover:text-red-500 transition-colors"
-                                            title="Delete Entry"
-                                          >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                              <div>
+                                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Amount ($)</label>
+                                <input 
+                                  type="number" step="0.01"
+                                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-blue-500"
+                                  placeholder="0.00"
+                                  value={logFormData.amount}
+                                  onChange={e => setLogFormData({...logFormData, amount: e.target.value})}
+                                />
+                              </div>
+                              <div className="flex items-end">
+                                <button 
+                                  onClick={() => addLogEntry(card.id)}
+                                  className="w-full bg-slate-900 text-white font-black py-3 rounded-xl text-xs uppercase tracking-widest shadow-lg active-scale flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
+                                >
+                                  <Plus className="w-4 h-4" /> Log Entry
+                                </button>
                               </div>
                             </div>
                           </div>
+                        )}
+
+                        {/* Full Transaction History Stream */}
+                        <div className="space-y-3">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Ledger History</p>
+                          {(!card.logs || card.logs.length === 0) ? (
+                            <div className="py-12 text-center bg-slate-100/50 rounded-[2rem] border-2 border-dashed border-slate-200">
+                              <ShoppingCart className="w-10 h-10 mx-auto text-slate-200 mb-3" />
+                              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">No spending recorded yet</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {card.logs.map(log => (
+                                <div key={log.id} className="bg-white p-5 rounded-2xl border-2 border-slate-100 flex items-center justify-between group hover:border-blue-200 transition-all shadow-sm">
+                                  <div className="flex items-center gap-4 min-w-0">
+                                    <div className="bg-red-50 p-2.5 rounded-xl text-red-500 border border-red-100 shrink-0">
+                                      <ArrowDownRight className="w-5 h-5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-black text-slate-900 text-sm uppercase truncate leading-none">{log.description}</p>
+                                        <span className="text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">{new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                      </div>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mt-1.5">Deducted from {card.source}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-6">
+                                    <p className="text-lg font-black text-red-600 tabular-nums">-${log.amount.toFixed(2)}</p>
+                                    <button onClick={() => removeLogEntry(card.id, log.id)} className="p-2.5 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
