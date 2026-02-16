@@ -45,14 +45,14 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 overflow-hidden">
-      {/* Sidebar - Enhanced for iPad */}
+    <div className="h-[100dvh] w-full flex flex-col md:flex-row bg-slate-50 overflow-hidden">
+      {/* Sidebar - Visible for all iPads/Tablets (md and up) */}
       <nav className={`
         fixed inset-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
-        lg:relative lg:translate-x-0 transition-all duration-300 ease-in-out
-        w-full sm:w-72 lg:w-64 bg-slate-900 text-white p-6 flex flex-col shadow-2xl safe-pl safe-pt
+        md:relative md:translate-x-0 transition-all duration-300 ease-in-out
+        w-full sm:w-72 md:w-64 lg:w-72 bg-slate-900 text-white p-6 flex flex-col shadow-2xl safe-pl safe-pt
       `}>
-        <div className="flex items-center justify-between mb-10 px-2 lg:block">
+        <div className="flex items-center justify-between mb-10 px-2 md:block">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-900/20">
               <Ship className="w-6 h-6 text-white" />
@@ -64,7 +64,7 @@ const App: React.FC = () => {
           </div>
           <button 
             onClick={() => setIsMobileMenuOpen(false)}
-            className="lg:hidden p-2 bg-slate-800 rounded-lg"
+            className="md:hidden p-3 bg-slate-800 rounded-xl"
           >
             <X className="w-6 h-6" />
           </button>
@@ -102,8 +102,8 @@ const App: React.FC = () => {
         </div>
       </nav>
 
-      {/* Mobile/Tablet Header */}
-      <div className="lg:hidden bg-slate-900 text-white flex justify-between items-center sticky top-0 z-40 safe-pt shadow-xl">
+      {/* Mobile-only Header (Small Screens Only) */}
+      <div className="md:hidden bg-slate-900 text-white flex justify-between items-center sticky top-0 z-40 safe-pt shadow-xl">
         <div className="flex items-center gap-3 px-6 py-4">
           <div className="bg-blue-600 p-1.5 rounded-lg">
             <Ship className="w-5 h-5 text-white" />
@@ -112,27 +112,27 @@ const App: React.FC = () => {
         </div>
         <button 
           onClick={() => setIsMobileMenuOpen(true)}
-          className="p-4 px-6 active-scale"
+          className="p-5 px-6 active-scale h-full flex items-center"
         >
           <Menu className="w-7 h-7" />
         </button>
       </div>
 
-      {/* Backdrop for iPad Portrait / Mobile */}
+      {/* Backdrop - Active only on small mobile devices */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-300" 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-300" 
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto safe-pb lg:safe-pt">
-        <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-10 space-y-8 lg:space-y-10">
+      {/* Main Content Area - Scrollable with Safe areas */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden safe-pb safe-pr md:safe-pt bg-slate-50">
+        <div className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8 lg:p-10 space-y-8 lg:space-y-10">
           {activeTab === 'dashboard' && (
             <>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="safe-pl">
+                <div>
                   <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">Adventure Awaits</h2>
                   <p className="text-slate-500 mt-1 font-semibold flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-blue-500" />
@@ -141,10 +141,10 @@ const App: React.FC = () => {
                 </div>
                 <button 
                   onClick={() => setIsEditingTrip(true)}
-                  className="flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-600 font-black text-sm active-scale shadow-sm transition-all hover:border-blue-500 hover:text-blue-600 safe-pr"
+                  className="flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-600 font-black text-sm active-scale shadow-sm transition-all hover:border-blue-500 hover:text-blue-600"
                 >
                   <Settings2 className="w-4 h-4" />
-                  Edit Date
+                  Edit Trip Date
                 </button>
               </div>
 
@@ -171,7 +171,7 @@ const App: React.FC = () => {
                       className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-black rounded-2xl active-scale shadow-lg shadow-blue-200"
                     >
                       <Save className="w-4 h-4" />
-                      Save
+                      Save Date
                     </button>
                   </div>
                 </div>
@@ -182,13 +182,13 @@ const App: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between px-2">
-                    <h3 className="text-xl font-black text-slate-900">Packing Progress</h3>
+                    <h3 className="text-xl font-black text-slate-900">Quick Checklist</h3>
                   </div>
                   <PackingChecklist previewOnly />
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between px-2">
-                    <h3 className="text-xl font-black text-slate-900">Cruise Assistant</h3>
+                    <h3 className="text-xl font-black text-slate-900">Cruise AI Assistant</h3>
                   </div>
                   <AIAssistant />
                 </div>
