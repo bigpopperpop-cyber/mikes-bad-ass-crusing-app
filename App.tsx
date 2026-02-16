@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Ship, Calendar, Package, Wallet, Menu, X, Settings2, Save, Database, Target, Banknote } from 'lucide-react';
 import { CountdownTimer } from './components/CountdownTimer';
@@ -14,13 +13,11 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isEditingTrip, setIsEditingTrip] = useState(false);
   
-  // Persistence for cruise date
   const [departureDate, setDepartureDate] = useState(() => {
     const saved = localStorage.getItem('cruise_departure_date');
     return saved || '2028-07-01';
   });
 
-  // Persistence for expenses
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('cruise_expenses');
     return saved ? JSON.parse(saved) : [
@@ -30,7 +27,6 @@ const App: React.FC = () => {
     ];
   });
 
-  // Derived Projected Trip Cost from expenses
   const projectedTripCost = useMemo(() => {
     return expenses.reduce((sum, exp) => sum + exp.amount, 0);
   }, [expenses]);
@@ -49,118 +45,151 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 overflow-hidden">
+      {/* Sidebar - Enhanced for iPad */}
       <nav className={`
         fixed inset-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
-        md:relative md:translate-x-0 transition-transform duration-300 ease-in-out
-        w-64 bg-slate-900 text-white p-6 flex flex-col shadow-2xl
+        lg:relative lg:translate-x-0 transition-all duration-300 ease-in-out
+        w-full sm:w-72 lg:w-64 bg-slate-900 text-white p-6 flex flex-col shadow-2xl safe-pl safe-pt
       `}>
-        <div className="flex items-center gap-3 mb-10 px-2">
-          <div className="bg-blue-600 p-2 rounded-xl">
-            <Ship className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between mb-10 px-2 lg:block">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-900/20">
+              <Ship className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="font-extrabold text-xl tracking-tight">Cruise 2028</h1>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Family Voyage</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-xl tracking-tight">Cruise 2028</h1>
-            <p className="text-xs text-slate-400 font-medium">Family Voyage</p>
-          </div>
-        </div>
-
-        <div className="space-y-2 flex-1">
-          <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-            <Calendar className="w-5 h-5" />
-            <span className="font-semibold text-sm">Dashboard</span>
-          </button>
-          <button onClick={() => { setActiveTab('goal'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'goal' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-            <Target className="w-5 h-5" />
-            <span className="font-semibold text-sm">Trip Goal Planner</span>
-          </button>
-          <button onClick={() => { setActiveTab('ledger'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'ledger' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-            <Wallet className="w-5 h-5" />
-            <span className="font-semibold text-sm">Trip Funds & Cash</span>
-          </button>
-          <button onClick={() => { setActiveTab('packing'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'packing' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-            <Package className="w-5 h-5" />
-            <span className="font-semibold text-sm">Packing List</span>
-          </button>
-          <button onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-            <Database className="w-5 h-5" />
-            <span className="font-semibold text-sm">Settings & Data</span>
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="lg:hidden p-2 bg-slate-800 rounded-lg"
+          >
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="pt-6 border-t border-slate-800 mt-auto">
-          <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-            <p className="text-xs text-slate-400 mb-1">Destination</p>
-            <p className="text-sm font-bold text-white uppercase tracking-wider">Carnival Breeze</p>
+        <div className="space-y-1 flex-1 overflow-y-auto pr-2 -mr-2">
+          {[
+            { id: 'dashboard', icon: Calendar, label: 'Dashboard' },
+            { id: 'goal', icon: Target, label: 'Trip Goal Planner' },
+            { id: 'ledger', icon: Wallet, label: 'Trip Funds & Cash' },
+            { id: 'packing', icon: Package, label: 'Packing List' },
+            { id: 'settings', icon: Database, label: 'Settings & Data' },
+          ].map((tab) => (
+            <button 
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id as any); setIsMobileMenuOpen(false); }} 
+              className={`
+                w-full flex items-center gap-3 px-4 py-4 rounded-xl transition-all active-scale
+                ${activeTab === tab.id 
+                  ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40' 
+                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}
+              `}
+            >
+              <tab.icon className="w-5 h-5 shrink-0" />
+              <span className="font-bold text-sm tracking-wide">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="pt-6 border-t border-slate-800 mt-auto safe-pb">
+          <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Destination</p>
+            <p className="text-sm font-black text-white uppercase tracking-wider">Carnival Breeze</p>
           </div>
         </div>
       </nav>
 
-      <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-40">
-        <div className="flex items-center gap-2">
-          <Ship className="w-5 h-5 text-blue-400" />
-          <span className="font-bold">Cruise 2028</span>
+      {/* Mobile/Tablet Header */}
+      <div className="lg:hidden bg-slate-900 text-white flex justify-between items-center sticky top-0 z-40 safe-pt shadow-xl">
+        <div className="flex items-center gap-3 px-6 py-4">
+          <div className="bg-blue-600 p-1.5 rounded-lg">
+            <Ship className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-black text-lg tracking-tight">Cruise 2028</span>
         </div>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        <button 
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="p-4 px-6 active-scale"
+        >
+          <Menu className="w-7 h-7" />
         </button>
       </div>
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-10">
-        <div className="max-w-6xl mx-auto space-y-8">
+      {/* Backdrop for iPad Portrait / Mobile */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-300" 
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto safe-pb lg:safe-pt">
+        <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-10 space-y-8 lg:space-y-10">
           {activeTab === 'dashboard' && (
             <>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-3xl font-extrabold text-slate-900">Adventure Awaits</h2>
-                  <p className="text-slate-500 mt-1">Trip Schedule: {new Date(departureDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="safe-pl">
+                  <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">Adventure Awaits</h2>
+                  <p className="text-slate-500 mt-1 font-semibold flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-500" />
+                    Trip Schedule: {new Date(departureDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </p>
                 </div>
                 <button 
                   onClick={() => setIsEditingTrip(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:border-blue-500 hover:text-blue-600 transition-all shadow-sm"
+                  className="flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-600 font-black text-sm active-scale shadow-sm transition-all hover:border-blue-500 hover:text-blue-600 safe-pr"
                 >
                   <Settings2 className="w-4 h-4" />
-                  Edit Trip Date
+                  Edit Date
                 </button>
               </div>
 
               {isEditingTrip && (
-                <div className="bg-blue-50 border-2 border-blue-100 p-6 rounded-2xl flex flex-col md:flex-row items-end gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="bg-white border-2 border-blue-100 p-6 rounded-[2rem] flex flex-col md:flex-row items-end gap-5 shadow-xl shadow-blue-900/5 animate-in slide-in-from-top-4 duration-300">
                   <div className="flex-1 w-full">
-                    <label className="block text-xs font-black text-blue-600 uppercase tracking-widest mb-2">Select Departure Date</label>
+                    <label className="block text-xs font-black text-blue-600 uppercase tracking-widest mb-2.5">Select Departure Date</label>
                     <input 
                       type="date"
-                      className="w-full bg-white border-2 border-blue-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 font-bold text-slate-900"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 outline-none focus:border-blue-500 font-bold text-slate-900 text-lg"
                       value={tempDate}
                       onChange={(e) => setTempDate(e.target.value)}
                     />
                   </div>
-                  <div className="flex gap-2 w-full md:w-auto">
+                  <div className="flex gap-3 w-full md:w-auto">
                     <button 
                       onClick={() => setIsEditingTrip(false)}
-                      className="flex-1 md:flex-none px-6 py-3 bg-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-300 transition-colors"
+                      className="flex-1 md:flex-none px-6 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl active-scale"
                     >
                       Cancel
                     </button>
                     <button 
                       onClick={saveTripSettings}
-                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-black rounded-2xl active-scale shadow-lg shadow-blue-200"
                     >
                       <Save className="w-4 h-4" />
-                      Save Date
+                      Save
                     </button>
                   </div>
                 </div>
               )}
 
               <CountdownTimer targetDateString={departureDate} />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-slate-800">Quick Checklist</h3>
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-xl font-black text-slate-900">Packing Progress</h3>
+                  </div>
                   <PackingChecklist previewOnly />
                 </div>
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-slate-800">AI Travel Planner</h3>
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-xl font-black text-slate-900">Cruise Assistant</h3>
+                  </div>
                   <AIAssistant />
                 </div>
               </div>

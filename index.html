@@ -2,19 +2,56 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Cruise 2028 Organizer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --sat: env(safe-area-inset-top);
+            --sar: env(safe-area-inset-right);
+            --sab: env(safe-area-inset-bottom);
+            --sal: env(safe-area-inset-left);
+        }
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
             margin: 0;
             padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            /* Support for iOS smooth scrolling */
+            -webkit-overflow-scrolling: touch;
         }
         #root {
             min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+        .safe-pt { padding-top: var(--sat); }
+        .safe-pb { padding-bottom: var(--sab); }
+        .safe-pl { padding-left: var(--sal); }
+        .safe-pr { padding-right: var(--sar); }
+        
+        /* Custom scrollbar for a cleaner look on iPad */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        
+        /* Prevent font scaling in landscape on mobile */
+        html {
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* Better touch active states */
+        .active-scale:active {
+            transform: scale(0.96);
         }
     </style>
 <script type="importmap">
