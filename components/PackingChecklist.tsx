@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PackingItem, Category } from '../types';
 import { Plus, CheckCircle2, Circle, Trash2, Tag, FileText, Shirt, HeartPulse } from 'lucide-react';
 
@@ -8,15 +8,23 @@ interface Props {
 }
 
 export const PackingChecklist: React.FC<Props> = ({ previewOnly = false }) => {
-  const [items, setItems] = useState<PackingItem[]>([
-    { id: '1', category: 'Documents', name: 'Passports', quantity: 4, isPacked: false },
-    { id: '2', category: 'Clothing', name: 'T-Shirts (The Legend)', quantity: 12345, isPacked: false },
-    { id: '3', category: 'Medical/Personal', name: 'Motion Sickness Patches', quantity: 2, isPacked: true },
-  ]);
+  const [items, setItems] = useState<PackingItem[]>(() => {
+    const saved = localStorage.getItem('cruise_packing_items');
+    if (saved) return JSON.parse(saved);
+    return [
+      { id: '1', category: 'Documents', name: 'Passports', quantity: 4, isPacked: false },
+      { id: '2', category: 'Clothing', name: 'T-Shirts (The Legend)', quantity: 2, isPacked: false },
+      { id: '3', category: 'Medical/Personal', name: 'Motion Sickness Patches', quantity: 2, isPacked: true },
+    ];
+  });
 
   const [newItemName, setNewItemName] = useState('');
   const [newItemCategory, setNewItemCategory] = useState<Category>('Clothing');
   const [newItemQty, setNewItemQty] = useState(1);
+
+  useEffect(() => {
+    localStorage.setItem('cruise_packing_items', JSON.stringify(items));
+  }, [items]);
 
   const togglePacked = (id: string) => {
     setItems(items.map(item => item.id === id ? { ...item, isPacked: !item.isPacked } : item));

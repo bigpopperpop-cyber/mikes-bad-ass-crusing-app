@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { Ship, Calendar, Package, Wallet, Menu, X, Settings2, Save } from 'lucide-react';
+import { Ship, Calendar, Package, Wallet, Menu, X, Settings2, Save, Database } from 'lucide-react';
 import { CountdownTimer } from './components/CountdownTimer';
 import { GiftCardLedger } from './components/GiftCardLedger';
 import { PackingChecklist } from './components/PackingChecklist';
 import { AIAssistant } from './components/AIAssistant';
+import { DataManagement } from './components/DataManagement';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'ledger' | 'packing'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'ledger' | 'packing' | 'settings'>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isEditingTrip, setIsEditingTrip] = useState(false);
   
@@ -65,6 +66,10 @@ const App: React.FC = () => {
           <button onClick={() => { setActiveTab('packing'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'packing' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
             <Package className="w-5 h-5" />
             <span className="font-semibold text-sm">Packing List</span>
+          </button>
+          <button onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            <Database className="w-5 h-5" />
+            <span className="font-semibold text-sm">Settings & Data</span>
           </button>
         </div>
 
@@ -153,6 +158,7 @@ const App: React.FC = () => {
             />
           )}
           {activeTab === 'packing' && <PackingChecklist />}
+          {activeTab === 'settings' && <DataManagement />}
         </div>
       </main>
     </div>
