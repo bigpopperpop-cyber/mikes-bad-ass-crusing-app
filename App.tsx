@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Ship, Calendar, Package, Wallet, Menu, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Ship, Calendar, Package, Wallet, Menu, X, Settings2, Save } from 'lucide-react';
 import { CountdownTimer } from './components/CountdownTimer';
 import { GiftCardLedger } from './components/GiftCardLedger';
 import { PackingChecklist } from './components/PackingChecklist';
@@ -9,6 +9,21 @@ import { AIAssistant } from './components/AIAssistant';
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ledger' | 'packing'>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isEditingTrip, setIsEditingTrip] = useState(false);
+  
+  // Persistence for cruise date
+  const [departureDate, setDepartureDate] = useState(() => {
+    const saved = localStorage.getItem('cruise_departure_date');
+    return saved || '2028-07-01';
+  });
+
+  const [tempDate, setTempDate] = useState(departureDate);
+
+  const saveTripSettings = () => {
+    setDepartureDate(tempDate);
+    localStorage.setItem('cruise_departure_date', tempDate);
+    setIsEditingTrip(false);
+  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
@@ -67,10 +82,47 @@ const App: React.FC = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-3xl font-extrabold text-slate-900">Adventure Awaits</h2>
-                  <p className="text-slate-500 mt-1">July 2028 • High School Graduation Trip</p>
+                  <p className="text-slate-500 mt-1">Trip Schedule: {new Date(departureDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                 </div>
+                <button 
+                  onClick={() => setIsEditingTrip(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:border-blue-500 hover:text-blue-600 transition-all shadow-sm"
+                >
+                  <Settings2 className="w-4 h-4" />
+                  Edit Trip Date
+                </button>
               </div>
-              <CountdownTimer />
+
+              {isEditingTrip && (
+                <div className="bg-blue-50 border-2 border-blue-100 p-6 rounded-2xl flex flex-col md:flex-row items-end gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                  <div className="flex-1 w-full">
+                    <label className="block text-xs font-black text-blue-600 uppercase tracking-widest mb-2">Select Departure Date</label>
+                    <input 
+                      type="date"
+                      className="w-full bg-white border-2 border-blue-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 font-bold text-slate-900"
+                      value={tempDate}
+                      onChange={(e) => setTempDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <button 
+                      onClick={() => setIsEditingTrip(false)}
+                      className="flex-1 md:flex-none px-6 py-3 bg-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={saveTripSettings}
+                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save Date
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <CountdownTimer targetDateString={departureDate} />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-4">
                   <h3 className="text-lg font-bold text-slate-800">Quick Checklist</h3>

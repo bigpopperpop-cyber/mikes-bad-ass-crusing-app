@@ -2,17 +2,23 @@
 import React, { useState, useEffect } from 'react';
 import type { CountdownState } from '../types';
 
-export const CountdownTimer: React.FC = () => {
-  const targetDate = new Date('2028-07-01T00:00:00').getTime();
+interface Props {
+  targetDateString: string;
+}
+
+export const CountdownTimer: React.FC<Props> = ({ targetDateString }) => {
   const [timeLeft, setTimeLeft] = useState<CountdownState | null>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => {
+    // Add time component to ensure it's treated as local midnight or specific time
+    const targetDate = new Date(targetDateString + 'T00:00:00').getTime();
+
+    const calculateTimeLeft = () => {
       const now = new Date().getTime();
       const difference = targetDate - now;
 
       if (difference <= 0) {
-        clearInterval(timer);
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
       }
 
@@ -22,10 +28,13 @@ export const CountdownTimer: React.FC = () => {
         minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
         seconds: Math.floor((difference % (1000 * 60)) / 1000),
       });
-    }, 1000);
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
 
     return () => clearInterval(timer);
-  }, [targetDate]);
+  }, [targetDateString]);
 
   if (!timeLeft) return null;
 
@@ -36,7 +45,9 @@ export const CountdownTimer: React.FC = () => {
         <div>
           <h4 className="text-blue-400 font-bold uppercase tracking-widest text-xs mb-2">Upcoming Milestone</h4>
           <h2 className="text-3xl font-black">High School Graduation Trip</h2>
-          <p className="text-slate-400 mt-1 text-sm font-medium">Bon Voyage: July 1st, 2028</p>
+          <p className="text-slate-400 mt-1 text-sm font-medium">
+            Bon Voyage: {new Date(targetDateString + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+          </p>
         </div>
         <div className="grid grid-cols-4 gap-4 md:gap-8">
           {[
