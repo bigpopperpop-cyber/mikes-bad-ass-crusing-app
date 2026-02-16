@@ -25,6 +25,14 @@ export interface CashEntry {
   dateAdded: string;
 }
 
+export interface CreditCardEntry {
+  id: string;
+  last4: string;
+  amount: number;
+  date: string;
+  description: string;
+}
+
 export interface Expense {
   id: string;
   description: string;

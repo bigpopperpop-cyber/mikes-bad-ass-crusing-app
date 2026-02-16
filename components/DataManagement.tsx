@@ -15,7 +15,8 @@ export const DataManagement: React.FC = () => {
       cruise_packing_items: localStorage.getItem('cruise_packing_items'),
       cruise_expenses: localStorage.getItem('cruise_expenses'),
       cruise_cash_entries: localStorage.getItem('cruise_cash_entries'),
-      version: '1.5',
+      cruise_credit_entries: localStorage.getItem('cruise_credit_entries'),
+      version: '1.6',
       timestamp: new Date().toISOString()
     };
   };
@@ -54,6 +55,7 @@ export const DataManagement: React.FC = () => {
       if (json.cruise_packing_items) localStorage.setItem('cruise_packing_items', json.cruise_packing_items);
       if (json.cruise_expenses) localStorage.setItem('cruise_expenses', json.cruise_expenses);
       if (json.cruise_cash_entries) localStorage.setItem('cruise_cash_entries', json.cruise_cash_entries);
+      if (json.cruise_credit_entries) localStorage.setItem('cruise_credit_entries', json.cruise_credit_entries);
       
       alert('Data imported successfully! The page will now reload.');
       window.location.reload();

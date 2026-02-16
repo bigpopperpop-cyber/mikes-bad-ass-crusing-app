@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { GiftCard, CashEntry, GiftCardLog, Expense } from '../types';
-import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2, History, ChevronDown, ChevronUp, ShoppingCart, Tag, ArrowDownRight } from 'lucide-react';
+import { GiftCard, CashEntry, GiftCardLog, Expense, CreditCardEntry } from '../types';
+import { Plus, Trash2, Wallet, CreditCard, DollarSign, Calendar, Globe, CheckCircle, TrendingUp, Target, Receipt, Banknote, Coins, Edit2, Check, X, Eye, EyeOff, Copy, ClipboardCheck, CheckCircle2, History, ChevronDown, ChevronUp, ShoppingCart, Tag, ArrowDownRight, PieChart, BarChart3, CreditCard as CreditCardIcon } from 'lucide-react';
 
 interface Props {
   projectedTripCost: number;
@@ -20,12 +20,19 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [creditEntries, setCreditEntries] = useState<CreditCardEntry[]>(() => {
+    const saved = localStorage.getItem('cruise_credit_entries');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [isAddingCash, setIsAddingCash] = useState(false);
+  const [isAddingCredit, setIsAddingCredit] = useState(false);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [revealedCardIds, setRevealedCardIds] = useState<Set<string>>(new Set());
   const [expandedRegisterId, setExpandedRegisterId] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null); 
+  const [showBreakdown, setShowBreakdown] = useState(true);
   
   // Register Form State
   const [logFormData, setLogFormData] = useState({
@@ -43,6 +50,10 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
     description: '', amount: 0, dateAdded: new Date().toISOString().split('T')[0]
   });
 
+  const [newCredit, setNewCredit] = useState<Partial<CreditCardEntry>>({
+    last4: '', amount: 0, date: new Date().toISOString().split('T')[0], description: ''
+  });
+
   useEffect(() => {
     localStorage.setItem('cruise_gift_cards', JSON.stringify(cards));
   }, [cards]);
@@ -50,6 +61,10 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
   useEffect(() => {
     localStorage.setItem('cruise_cash_entries', JSON.stringify(cashEntries));
   }, [cashEntries]);
+
+  useEffect(() => {
+    localStorage.setItem('cruise_credit_entries', JSON.stringify(creditEntries));
+  }, [creditEntries]);
 
   const stats = useMemo(() => {
     const activeGiftCardCurrentBalance = cards.reduce((sum, card) => {
@@ -62,24 +77,50 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
     const totalProgressValue = totalInitialGiftCards + cashTotal;
     const progressPercent = projectedTripCost > 0 ? Math.min(100, (totalProgressValue / projectedTripCost) * 100) : 0;
     
-    const totalUsedGiftCardsValue = cards.reduce((sum, card) => {
-      return card.dateCompleted ? sum + card.originalBalance : sum;
-    }, 0);
-
-    const totalSpentOffCards = cards.reduce((sum, card) => {
+    const totalSpentFromCards = cards.reduce((sum, card) => {
       return sum + (card.originalBalance - card.currentBalance);
     }, 0);
+
+    const totalSpentFromCredit = creditEntries.reduce((sum, entry) => sum + entry.amount, 0);
+    const grandTotalSpent = totalSpentFromCards + totalSpentFromCredit;
+
+    // Group spending by allocation (description)
+    const spendingByAllocation: Record<string, { spent: number; planned: number }> = {};
+    
+    // Initialize with planned expenses
+    expenses.forEach(exp => {
+      spendingByAllocation[exp.description] = { spent: 0, planned: exp.amount };
+    });
+
+    // Aggregate from card logs
+    cards.forEach(card => {
+      card.logs?.forEach(log => {
+        if (!spendingByAllocation[log.description]) {
+          spendingByAllocation[log.description] = { spent: 0, planned: 0 };
+        }
+        spendingByAllocation[log.description].spent += log.amount;
+      });
+    });
+
+    // Aggregate from credit card entries
+    creditEntries.forEach(entry => {
+      if (!spendingByAllocation[entry.description]) {
+        spendingByAllocation[entry.description] = { spent: 0, planned: 0 };
+      }
+      spendingByAllocation[entry.description].spent += entry.amount;
+    });
 
     return { 
       availableToSpend, 
       cashTotal, 
       totalProgressValue, 
       progressPercent, 
-      totalUsedGiftCardsValue,
-      totalSpentOffCards,
-      activeGiftCardCurrentBalance
+      totalSpentOffCards: grandTotalSpent,
+      activeGiftCardCurrentBalance,
+      spendingByAllocation: Object.entries(spendingByAllocation)
+        .sort((a, b) => b[1].spent - a[1].spent)
     };
-  }, [cards, cashEntries, projectedTripCost]);
+  }, [cards, cashEntries, creditEntries, projectedTripCost, expenses]);
 
   const toggleReveal = (id: string) => {
     const newSet = new Set(revealedCardIds);
@@ -144,6 +185,28 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
       }
       return card;
     }));
+  };
+
+  const handleAddCredit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newCredit.description && newCredit.amount && newCredit.last4) {
+      const entry: CreditCardEntry = {
+        id: Math.random().toString(36).substr(2, 9),
+        last4: newCredit.last4 || '',
+        amount: Number(newCredit.amount) || 0,
+        date: newCredit.date || '',
+        description: newCredit.description || '',
+      };
+      setCreditEntries([entry, ...creditEntries]);
+      setIsAddingCredit(false);
+      setNewCredit({ last4: '', amount: 0, date: new Date().toISOString().split('T')[0], description: '' });
+    }
+  };
+
+  const removeCreditEntry = (id: string) => {
+    if (window.confirm('Delete this credit card transaction?')) {
+      setCreditEntries(creditEntries.filter(e => e.id !== id));
+    }
   };
 
   const copyToClipboard = (text: string, id: string, type: 'number' | 'code') => {
@@ -235,7 +298,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
         {[
           { icon: Wallet, color: 'blue', label: 'Available to Spend', value: stats.availableToSpend, sub: 'Active Cards + Cash' },
           { icon: Banknote, color: 'emerald', label: 'Cash Savings', value: stats.cashTotal, sub: 'Total Stashed Cash' },
-          { icon: History, color: 'amber', label: 'Gift Cards Used', value: stats.totalUsedGiftCardsValue, sub: 'Retired Card Value' },
+          { icon: History, color: 'amber', label: 'Total Spending Logged', value: stats.totalSpentOffCards, sub: 'From Cards & Credit' },
         ].map((item, idx) => (
           <div key={idx} className="bg-white p-5 sm:p-7 rounded-[2rem] border-2 border-slate-200 shadow-sm relative overflow-hidden group">
             <div className={`bg-${item.color}-100 w-12 h-12 rounded-2xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110`}>
@@ -271,11 +334,90 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                 Goal: ${projectedTripCost.toLocaleString()}
               </p>
               <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">
-                Spent: ${stats.totalSpentOffCards.toLocaleString()}
+                Used: ${stats.totalSpentOffCards.toLocaleString()}
               </p>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Global Spending Breakdown Summary */}
+      <div className="bg-white rounded-[2.5rem] border-2 border-slate-200 shadow-sm overflow-hidden p-6 sm:p-10 animate-in slide-in-from-top-4 duration-500">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+          <div className="flex items-center gap-4">
+            <div className="bg-slate-900 p-3 rounded-2xl">
+              <PieChart className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Spending Breakdown</h3>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Combined Results Across All Funds</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setShowBreakdown(!showBreakdown)}
+            className="text-[10px] font-black text-blue-600 bg-blue-50 px-4 py-2 rounded-xl uppercase tracking-widest active-scale"
+          >
+            {showBreakdown ? 'Hide Analytics' : 'Show Analytics'}
+          </button>
+        </div>
+
+        {showBreakdown && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stats.spendingByAllocation.length === 0 ? (
+              <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-100 rounded-[2rem]">
+                <BarChart3 className="w-10 h-10 mx-auto text-slate-200 mb-2" />
+                <p className="text-sm font-bold text-slate-400">No transactions recorded yet.</p>
+              </div>
+            ) : (
+              stats.spendingByAllocation.map(([name, data]) => {
+                const percentOfPlanned = data.planned > 0 ? (data.spent / data.planned) * 100 : 0;
+                const isOver = data.planned > 0 && data.spent > data.planned;
+
+                return (
+                  <div key={name} className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100 flex flex-col justify-between group hover:bg-white hover:border-blue-200 transition-all">
+                    <div>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-black text-slate-900 uppercase tracking-tight truncate leading-tight">{name}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Allocation Group</p>
+                        </div>
+                        <div className={`p-2 rounded-lg ${isOver ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                          <Receipt className="w-4 h-4" />
+                        </div>
+                      </div>
+
+                      <div className="flex items-end gap-2 mb-4">
+                        <p className={`text-2xl font-black tabular-nums ${isOver ? 'text-red-600' : 'text-slate-900'}`}>
+                          ${data.spent.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                        {data.planned > 0 && (
+                          <p className="text-[10px] text-slate-400 font-bold mb-1.5 uppercase">of ${data.planned.toLocaleString()} goal</p>
+                        )}
+                      </div>
+
+                      {data.planned > 0 && (
+                        <div className="space-y-2">
+                          <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-1000 ${isOver ? 'bg-red-500' : 'bg-blue-600'}`}
+                              style={{ width: `${Math.min(100, percentOfPlanned)}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+                            <span className={isOver ? 'text-red-500' : 'text-slate-500'}>{Math.round(percentOfPlanned)}% Spent</span>
+                            <span className="text-slate-400">
+                              {isOver ? `Over by $${(data.spent - data.planned).toFixed(2)}` : `$${(data.planned - data.spent).toFixed(2)} Left`}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 lg:gap-12">
@@ -283,7 +425,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
         <div className="space-y-5">
           <div className="flex justify-between items-center px-2">
             <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-              <div className="bg-blue-600 p-1.5 rounded-lg"><CreditCard className="w-5 h-5 text-white" /></div>
+              <div className="bg-blue-600 p-1.5 rounded-lg"><CreditCardIcon className="w-5 h-5 text-white" /></div>
               Manage Gift Cards
             </h3>
             <button 
@@ -298,7 +440,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
           <div className="space-y-4">
             {cards.length === 0 ? (
               <div className="bg-white rounded-[2.5rem] border-2 border-slate-200 p-20 text-center text-slate-400 font-bold italic opacity-60">
-                <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-10" />
+                <CreditCardIcon className="w-12 h-12 mx-auto mb-4 opacity-10" />
                 Register your cards to start saving.
               </div>
             ) : (
@@ -317,7 +459,7 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-center gap-4 sm:gap-6 min-w-0">
                           <div className={`p-4 rounded-[1.5rem] border-2 shrink-0 transition-colors ${isCompleted ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
-                            {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <CreditCard className="w-6 h-6" />}
+                            {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <CreditCardIcon className="w-6 h-6" />}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -469,68 +611,120 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
           </div>
         </div>
 
-        {/* Cash Section */}
-        <div className="space-y-5">
-          <div className="flex justify-between items-center px-2">
-            <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-              <div className="bg-emerald-600 p-1.5 rounded-lg"><Banknote className="w-5 h-5 text-white" /></div>
-              Physical Cash
-            </h3>
-            <button 
-              onClick={() => setIsAddingCash(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white font-black rounded-2xl active-scale shadow-lg shadow-emerald-900/10 text-sm tracking-wide"
-            >
-              <Plus className="w-4 h-4" />
-              Add Cash
-            </button>
+        {/* Credit & Cash Sidebar-style Column */}
+        <div className="space-y-8">
+          {/* Credit Card Transactions */}
+          <div className="space-y-5">
+            <div className="flex justify-between items-center px-2">
+              <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
+                <div className="bg-orange-600 p-1.5 rounded-lg"><CreditCardIcon className="w-5 h-5 text-white" /></div>
+                Card Payments
+              </h3>
+              <button 
+                onClick={() => setIsAddingCredit(true)}
+                className="flex items-center gap-2 px-5 py-3 bg-orange-600 text-white font-black rounded-2xl active-scale shadow-lg shadow-orange-900/10 text-sm tracking-wide"
+              >
+                <Plus className="w-4 h-4" />
+                Add Entry
+              </button>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] border-2 border-slate-200 shadow-sm overflow-hidden">
+              <div className="divide-y divide-slate-100">
+                {creditEntries.length === 0 ? (
+                  <div className="p-12 text-center text-slate-400 font-bold italic opacity-60">
+                    <CreditCardIcon className="w-10 h-10 mx-auto mb-3 opacity-10" />
+                    Log direct credit card charges.
+                  </div>
+                ) : (
+                  creditEntries.map(entry => (
+                    <div key={entry.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group relative">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-orange-50 p-3 rounded-xl text-orange-600 border border-orange-100">
+                          <CreditCardIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900 text-sm uppercase leading-tight">{entry.description}</p>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span className="text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Card •••• {entry.last4}</span>
+                            <span className="text-[8px] font-black text-slate-400 uppercase">{new Date(entry.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <p className="text-base font-black text-slate-900 tabular-nums">-${entry.amount.toFixed(2)}</p>
+                        <button onClick={() => removeCreditEntry(entry.id)} className="p-2 text-slate-200 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border-2 border-slate-200 shadow-sm overflow-hidden">
-            <div className="divide-y divide-slate-100">
-              {cashEntries.length === 0 ? (
-                <div className="p-16 text-center text-slate-400 font-bold italic opacity-60">
-                  <Banknote className="w-12 h-12 mx-auto mb-4 opacity-10" />
-                  Track physical savings or change jars.
-                </div>
-              ) : (
-                cashEntries.map(entry => (
-                  <div key={entry.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors active:bg-slate-100 group relative">
-                    <div className="flex items-center gap-5">
-                      <div className="bg-emerald-50 p-4 rounded-[1.25rem] text-emerald-600 border border-emerald-100">
-                        <Banknote className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <p className="font-black text-slate-900 text-lg leading-tight">{entry.description}</p>
-                        <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1.5 font-black uppercase tracking-widest">
-                          <Calendar className="w-3.5 h-3.5" />
-                          {new Date(entry.dateAdded).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 sm:gap-8">
-                      <div className="text-right mr-10 sm:mr-0">
-                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">STASHED</p>
-                        <p className="text-xl sm:text-2xl font-black text-slate-900 tabular-nums tracking-tight">${entry.amount.toFixed(2)}</p>
-                      </div>
-                      <button 
-                        onClick={() => removeCashEntry(entry.id)} 
-                        className="absolute right-4 top-1/2 -translate-y-1/2 sm:static sm:translate-y-0 p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
-                        aria-label="Remove Cash"
-                      >
-                        <Trash2 className="w-5 h-5 sm:w-6 sm:h-6" />
-                      </button>
-                    </div>
+          {/* Physical Cash Section */}
+          <div className="space-y-5">
+            <div className="flex justify-between items-center px-2">
+              <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
+                <div className="bg-emerald-600 p-1.5 rounded-lg"><Banknote className="w-5 h-5 text-white" /></div>
+                Physical Cash
+              </h3>
+              <button 
+                onClick={() => setIsAddingCash(true)}
+                className="flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white font-black rounded-2xl active-scale shadow-lg shadow-emerald-900/10 text-sm tracking-wide"
+              >
+                <Plus className="w-4 h-4" />
+                Add Cash
+              </button>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] border-2 border-slate-200 shadow-sm overflow-hidden">
+              <div className="divide-y divide-slate-100">
+                {cashEntries.length === 0 ? (
+                  <div className="p-12 text-center text-slate-400 font-bold italic opacity-60">
+                    <Banknote className="w-10 h-10 mx-auto mb-3 opacity-10" />
+                    Track cash jars.
                   </div>
-                ))
-              )}
+                ) : (
+                  cashEntries.map(entry => (
+                    <div key={entry.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors active:bg-slate-100 group relative">
+                      <div className="flex items-center gap-5">
+                        <div className="bg-emerald-50 p-4 rounded-[1.25rem] text-emerald-600 border border-emerald-100">
+                          <Banknote className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900 text-lg leading-tight">{entry.description}</p>
+                          <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1.5 font-black uppercase tracking-widest">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {new Date(entry.dateAdded).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 sm:gap-8">
+                        <div className="text-right mr-10 sm:mr-0">
+                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">STASHED</p>
+                          <p className="text-xl sm:text-2xl font-black text-slate-900 tabular-nums tracking-tight">${entry.amount.toFixed(2)}</p>
+                        </div>
+                        <button 
+                          onClick={() => removeCashEntry(entry.id)} 
+                          className="absolute right-4 top-1/2 -translate-y-1/2 sm:static sm:translate-y-0 p-3 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active-scale"
+                          aria-label="Remove Cash"
+                        >
+                          <Trash2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Modern Modals */}
-      {(isAddingCard || isAddingCash) && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-300" onClick={() => { setIsAddingCard(false); setIsAddingCash(false); }}>
+      {(isAddingCard || isAddingCash || isAddingCredit) && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-300" onClick={() => { setIsAddingCard(false); setIsAddingCash(false); setIsAddingCredit(false); }}>
           <div 
             className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 sm:p-12 max-w-xl w-full shadow-2xl safe-pb animate-in slide-in-from-bottom-8 duration-500"
             onClick={e => e.stopPropagation()}
@@ -538,81 +732,42 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
             {isAddingCard ? (
               <>
                 <div className="flex items-center gap-4 mb-2">
-                  <div className="bg-blue-600 p-2.5 rounded-2xl"><CreditCard className="w-7 h-7 text-white" /></div>
+                  <div className="bg-blue-600 p-2.5 rounded-2xl"><CreditCardIcon className="w-7 h-7 text-white" /></div>
                   <h3 className="text-3xl font-black text-slate-900 tracking-tight">{editingCardId ? 'Edit Card' : 'Register Card'}</h3>
                 </div>
                 <p className="text-slate-400 font-bold mb-10">Updating details for local storage.</p>
                 <form onSubmit={handleSaveCard} className="space-y-6">
+                  {/* ... Existing form ... */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="sm:col-span-2">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Vendor / Source</label>
-                      <input 
-                        autoFocus
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg"
-                        placeholder="e.g. AARP, Amazon, Sam's Club"
-                        value={cardFormData.source}
-                        onChange={e => setCardFormData({...cardFormData, source: e.target.value})}
-                        required
-                        autoComplete="off"
-                      />
+                      <input autoFocus className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg" placeholder="e.g. Sam's Club" value={cardFormData.source} onChange={e => setCardFormData({...cardFormData, source: e.target.value})} required autoComplete="off" />
                     </div>
                     <div className="sm:col-span-2">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Full Card Number</label>
-                      <input 
-                        type="text"
-                        inputMode="numeric"
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg tracking-widest font-mono"
-                        placeholder="Enter all digits"
-                        value={cardFormData.cardNumber}
-                        onChange={e => setCardFormData({...cardFormData, cardNumber: e.target.value.replace(/\D/g, '')})}
-                        required
-                        autoComplete="off"
-                      />
+                      <input type="text" inputMode="numeric" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg tracking-widest font-mono" placeholder="Enter all digits" value={cardFormData.cardNumber} onChange={e => setCardFormData({...cardFormData, cardNumber: e.target.value.replace(/\D/g, '')})} required autoComplete="off" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Access Code</label>
-                      <input 
-                        type="text"
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg font-mono"
-                        placeholder="e.g. 1234"
-                        value={cardFormData.accessCode}
-                        onChange={e => setCardFormData({...cardFormData, accessCode: e.target.value})}
-                        autoComplete="off"
-                      />
+                      <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-bold transition-all text-lg font-mono" placeholder="e.g. 1234" value={cardFormData.accessCode} onChange={e => setCardFormData({...cardFormData, accessCode: e.target.value})} autoComplete="off" />
                     </div>
                     <div className="hidden sm:block"></div>
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Original Balance ($)</label>
-                      <input 
-                        type="number" step="0.01"
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-black transition-all text-lg"
-                        placeholder="0.00"
-                        value={cardFormData.originalBalance || ''}
-                        onChange={e => setCardFormData({...cardFormData, originalBalance: parseFloat(e.target.value) || 0})}
-                        required
-                      />
+                      <input type="number" step="0.01" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-black transition-all text-lg" placeholder="0.00" value={cardFormData.originalBalance || ''} onChange={e => setCardFormData({...cardFormData, originalBalance: parseFloat(e.target.value) || 0})} required />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Current Balance ($)</label>
-                      <input 
-                        type="number" step="0.01"
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-black transition-all text-lg"
-                        placeholder="0.00"
-                        value={cardFormData.currentBalance || ''}
-                        onChange={e => setCardFormData({...cardFormData, currentBalance: parseFloat(e.target.value) || 0})}
-                        required
-                      />
+                      <input type="number" step="0.01" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 font-black transition-all text-lg" placeholder="0.00" value={cardFormData.currentBalance || ''} onChange={e => setCardFormData({...cardFormData, currentBalance: parseFloat(e.target.value) || 0})} required />
                     </div>
                   </div>
                   <div className="flex gap-4 pt-6">
                     <button type="button" onClick={() => setIsAddingCard(false)} className="flex-1 bg-slate-100 py-5 rounded-[1.5rem] font-black text-slate-500 active-scale">Cancel</button>
-                    <button type="submit" className="flex-1 bg-blue-600 py-5 rounded-[1.5rem] font-black text-white shadow-2xl shadow-blue-900/20 active-scale">
-                      {editingCardId ? 'Update Card' : 'Save Card'}
-                    </button>
+                    <button type="submit" className="flex-1 bg-blue-600 py-5 rounded-[1.5rem] font-black text-white shadow-2xl shadow-blue-900/20 active-scale">{editingCardId ? 'Update Card' : 'Save Card'}</button>
                   </div>
                 </form>
               </>
-            ) : (
+            ) : isAddingCash ? (
               <>
                 <div className="flex items-center gap-4 mb-2">
                   <div className="bg-emerald-600 p-2.5 rounded-2xl"><Banknote className="w-7 h-7 text-white" /></div>
@@ -620,44 +775,84 @@ export const GiftCardLedger: React.FC<Props> = ({ projectedTripCost, expenses })
                 </div>
                 <p className="text-slate-400 font-bold mb-10">Record physical savings for the trip.</p>
                 <form onSubmit={handleAddCash} className="space-y-6">
+                  {/* ... Existing cash form ... */}
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Saving Description</label>
-                    <input 
-                      autoFocus
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-emerald-500 font-bold transition-all text-lg"
-                      placeholder="e.g. Weekly Stash, Piggy Bank"
-                      value={newCash.description}
-                      onChange={e => setNewCash({...newCash, description: e.target.value})}
-                      required
-                      autoComplete="off"
-                    />
+                    <input autoFocus className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-emerald-500 font-bold transition-all text-lg" placeholder="e.g. Weekly Stash" value={newCash.description} onChange={e => setNewCash({...newCash, description: e.target.value})} required autoComplete="off" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Amount ($)</label>
-                      <input 
-                        type="number" step="0.01"
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-emerald-500 font-black transition-all text-xl"
-                        placeholder="0.00"
-                        value={newCash.amount || ''}
-                        onChange={e => setNewCash({...newCash, amount: parseFloat(e.target.value) || 0})}
-                        required
-                      />
+                      <input type="number" step="0.01" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-emerald-500 font-black transition-all text-xl" placeholder="0.00" value={newCash.amount || ''} onChange={e => setNewCash({...newCash, amount: parseFloat(e.target.value) || 0})} required />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Date</label>
-                      <input 
-                        type="date"
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-emerald-500 font-bold text-slate-500 transition-all text-lg"
-                        value={newCash.dateAdded}
-                        onChange={e => setNewCash({...newCash, dateAdded: e.target.value})}
-                        required
-                      />
+                      <input type="date" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-emerald-500 font-bold text-slate-500 transition-all text-lg" value={newCash.dateAdded} onChange={e => setNewCash({...newCash, dateAdded: e.target.value})} required />
                     </div>
                   </div>
                   <div className="flex gap-4 pt-6">
                     <button type="button" onClick={() => setIsAddingCash(false)} className="flex-1 bg-slate-100 py-5 rounded-[1.5rem] font-black text-slate-500 active-scale">Cancel</button>
                     <button type="submit" className="flex-1 bg-emerald-600 py-5 rounded-[1.5rem] font-black text-white shadow-2xl shadow-emerald-900/20 active-scale">Save Cash</button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="bg-orange-600 p-2.5 rounded-2xl"><CreditCardIcon className="w-7 h-7 text-white" /></div>
+                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">Credit Payment</h3>
+                </div>
+                <p className="text-slate-400 font-bold mb-10">Log a transaction paid with a credit card.</p>
+                <form onSubmit={handleAddCredit} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Budget Allocation</label>
+                      <div className="relative">
+                        <select 
+                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-orange-500 font-bold transition-all text-lg appearance-none pr-12"
+                          value={newCredit.description}
+                          onChange={e => setNewCredit({...newCredit, description: e.target.value})}
+                          required
+                        >
+                          <option value="">Select Category...</option>
+                          {expenses.map((exp) => (
+                            <option key={exp.id} value={exp.description}>{exp.description}</option>
+                          ))}
+                          <option value="General Spending">General Spending</option>
+                        </select>
+                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Last 4 Digits</label>
+                      <input 
+                        type="text" maxLength={4}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-orange-500 font-bold transition-all text-lg"
+                        placeholder="0000"
+                        value={newCredit.last4}
+                        onChange={e => setNewCredit({...newCredit, last4: e.target.value.replace(/\D/g, '')})}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Amount ($)</label>
+                      <input 
+                        type="number" step="0.01"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-orange-500 font-black transition-all text-xl"
+                        placeholder="0.00"
+                        value={newCredit.amount || ''}
+                        onChange={e => setNewCredit({...newCredit, amount: parseFloat(e.target.value) || 0})}
+                        required
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Transaction Date</label>
+                      <input type="date" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 outline-none focus:border-orange-500 font-bold text-slate-500 transition-all text-lg" value={newCredit.date} onChange={e => setNewCredit({...newCredit, date: e.target.value})} required />
+                    </div>
+                  </div>
+                  <div className="flex gap-4 pt-6">
+                    <button type="button" onClick={() => setIsAddingCredit(false)} className="flex-1 bg-slate-100 py-5 rounded-[1.5rem] font-black text-slate-500 active-scale">Cancel</button>
+                    <button type="submit" className="flex-1 bg-orange-600 py-5 rounded-[1.5rem] font-black text-white shadow-2xl shadow-orange-900/20 active-scale">Log Payment</button>
                   </div>
                 </form>
               </>
